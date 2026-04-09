@@ -3,41 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Costos La Pasarela</title>
+    <title>Costos La Pasarela Pro</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
         :root { --primary: #2c3e50; --secondary: #d4a373; --bg: #f8f9fa; }
         body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
         .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
-        h2 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 5px; }
-        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 5px; margin-top: 0; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; font-size: 16px; }
         button { background: var(--primary); color: white; font-weight: bold; border: none; cursor: pointer; }
         button.sec { background: var(--secondary); }
+        .row { display: flex; gap: 10px; align-items: center; margin-bottom: 10px; border-bottom: 1px solid #eee; padding-bottom: 10px; }
         table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
         th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
-        .chart-container { position: relative; height: 300px; width: 100%; }
+        .chart-container { position: relative; height: 300px; width: 100%; margin-top: 20px; }
     </style>
 </head>
 <body>
 
     <div class="card">
-        <h2>1. Ingredientes (Precios)</h2>
-        <input type="text" id="ingNom" placeholder="Nombre (ej: Salmón)">
-        <input type="number" id="ingPre" placeholder="Precio x Kilo o Unidad">
-        <input type="number" id="ingMerma" placeholder="% Merma (ej: 10)" value="0">
-        <button onclick="guardarIngrediente()">Guardar Ingrediente</button>
+        <h2>1. Registrar Insumo</h2>
+        <input type="text" id="ingNom" placeholder="Ej: Harina o Aceite">
+        <div style="display: flex; gap: 10px;">
+            <input type="number" id="ingPre" placeholder="Precio Compra">
+            <select id="ingUniBase" style="width: 50%;">
+                <option value="kg">Por Kilo</option>
+                <option value="lt">Por Litro</option>
+                <option value="un">Por Unidad</option>
+            </select>
+        </div>
+        <input type="number" id="ingMerma" placeholder="% Merma (Desperdicio)" value="0">
+        <button onclick="guardarIngrediente()">Guardar en Inventario</button>
     </div>
 
     <div class="card">
-        <h2>2. Crear Plato</h2>
-        <input type="text" id="platoNom" placeholder="Nombre del Plato">
-        <div id="contenedorIngredientesReceta"></div>
-        <button class="sec" onclick="agregarFilaIngrediente()">+ Añadir Insumo</button>
-        <button onclick="guardarPlato()">Calcular y Guardar Plato</button>
+        <h2>2. Calcular Costo de Plato</h2>
+        <input type="text" id="platoNom" placeholder="Nombre del Plato (ej: La Gaucha)">
+        <div id="contenedorIngredientesReceta">
+            </div>
+        <button class="sec" onclick="agregarFilaIngrediente()">+ Agregar Ingrediente</button>
+        <button onclick="guardarPlato()">Finalizar y Guardar Plato</button>
     </div>
 
     <div class="card">
-        <h2>3. Consolidado y Gráficos</h2>
+        <h2>3. Consolidado de Costos</h2>
         <div class="chart-container">
             <canvas id="graficoCostos"></canvas>
         </div>
@@ -46,7 +55,7 @@
                 <tr>
                     <th>Plato</th>
                     <th>Costo Total</th>
-                    <th>Borrar</th>
+                    <th>Acción</th>
                 </tr>
             </thead>
             <tbody></tbody>
@@ -61,43 +70,63 @@
     function guardarIngrediente() {
         const nom = document.getElementById('ingNom').value;
         const pre = parseFloat(document.getElementById('ingPre').value);
+        const uni = document.getElementById('ingUniBase').value;
         const mer = parseFloat(document.getElementById('ingMerma').value);
         if(nom && pre) {
-            ingredientes.push({ nom, pre, mer });
+            ingredientes.push({ nom, pre, uni, mer });
             localStorage.setItem('ingredientes', JSON.stringify(ingredientes));
-            alert("Ingrediente guardado");
+            alert("Insumo guardado correctamente");
             location.reload();
         }
     }
 
     function agregarFilaIngrediente() {
         const div = document.getElementById('contenedorIngredientesReceta');
-        const selectOptions = ingredientes.map((ing, i) => `<option value="${i}">${ing.nom}</option>`).join('');
+        const selectOptions = ingredientes.map((ing, i) => `<option value="${i}">${ing.nom} (${ing.uni})</option>`).join('');
         const html = `
-            <div style="display:flex; gap:5px;">
-                <select class="selIng">${selectOptions}</select>
-                <input type="number" class="cantIng" placeholder="Cant (kg/un)">
+            <div class="row">
+                <select class="selIng" style="flex: 2;">${selectOptions}</select>
+                <input type="number" class="cantIng" placeholder="Cant." style="flex: 1;">
+                <select class="uniUso" style="flex: 1.5;">
+                    <option value="base">Misma unidad</option>
+                    <option value="gr">Gramos</option>
+                    <option value="ml">Mililitros</option>
+                </select>
             </div>`;
         div.insertAdjacentHTML('beforeend', html);
     }
 
     function guardarPlato() {
-        const nombre = document.getElementById('platoNom').value;
+        const nombrePlato = document.getElementById('platoNom').value;
         const sels = document.querySelectorAll('.selIng');
         const cants = document.querySelectorAll('.cantIng');
+        const unisUso = document.querySelectorAll('.uniUso');
         let costoFinal = 0;
+
+        if(!nombrePlato) return alert("Ponle un nombre al plato");
 
         sels.forEach((sel, i) => {
             const ing = ingredientes[sel.value];
-            const cantidad = parseFloat(cants[i].value);
-            // Cálculo con merma: Precio / (1 - %merma/100)
-            const precioReal = ing.pre / (1 - (ing.mer / 100));
-            costoFinal += precioReal * cantidad;
+            let cantidad = parseFloat(cants[i].value);
+            const unidadUso = unisUso[i].value;
+
+            // Ajuste por merma primero
+            let precioUnitarioReal = ing.pre / (1 - (ing.mer / 100));
+
+            // Conversión de unidades
+            if(unidadUso === 'gr' || unidadUso === 'ml') {
+                // Si el insumo está en Kg/Lt y se usa en gr/ml, dividimos el precio por 1000
+                precioUnitarioReal = precioUnitarioReal / 1000;
+            }
+
+            costoFinal += precioUnitarioReal * cantidad;
         });
 
-        platos.push({ nombre, costo: costoFinal.toFixed(0) });
+        platos.push({ nombre: nombrePlato, costo: Math.round(costoFinal) });
         localStorage.setItem('platos', JSON.stringify(platos));
         renderizarTodo();
+        document.getElementById('contenedorIngredientesReceta').innerHTML = '';
+        document.getElementById('platoNom').value = '';
     }
 
     function renderizarTodo() {
@@ -105,17 +134,19 @@
         tbody.innerHTML = platos.map((p, i) => `
             <tr>
                 <td>${p.nombre}</td>
-                <td>$${p.costo}</td>
-                <td><button onclick="borrarPlato(${i})" style="padding:5px; background:red;">X</button></td>
+                <td>$${p.costo.toLocaleString()}</td>
+                <td><button onclick="borrarPlato(${i})" style="padding:5px; background:#e74c3c; width:auto;">Borrar</button></td>
             </tr>
         `).join('');
         actualizarGrafico();
     }
 
     function borrarPlato(i) {
-        platos.splice(i, 1);
-        localStorage.setItem('platos', JSON.stringify(platos));
-        renderizarTodo();
+        if(confirm("¿Seguro que quieres borrar este plato?")) {
+            platos.splice(i, 1);
+            localStorage.setItem('platos', JSON.stringify(platos));
+            renderizarTodo();
+        }
     }
 
     function actualizarGrafico() {
@@ -126,16 +157,6 @@
             data: {
                 labels: platos.map(p => p.nombre),
                 datasets: [{
-                    label: 'Costo de Producción ($)',
+                    label: 'Costo Unitario ($)',
                     data: platos.map(p => p.costo),
-                    backgroundColor: '#d4a373'
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
-    }
-
-    renderizarTodo();
-</script>
-</body>
-</html>
+                    backgroundColor: '#d
