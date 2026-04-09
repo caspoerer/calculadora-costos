@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Costos La Pasarela</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #d4a373; --bg: #f8f9fa; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; background: var(--bg); margin: 0; padding: 15px; }
+        .card { background: white; padding: 20px; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin-bottom: 20px; }
+        h2 { color: var(--primary); border-bottom: 2px solid var(--secondary); padding-bottom: 5px; }
+        input, select, button { width: 100%; padding: 12px; margin: 8px 0; border-radius: 8px; border: 1px solid #ccc; box-sizing: border-box; }
+        button { background: var(--primary); color: white; font-weight: bold; border: none; cursor: pointer; }
+        button.sec { background: var(--secondary); }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .chart-container { position: relative; height: 300px; width: 100%; }
+    </style>
+</head>
+<body>
+
+    <div class="card">
+        <h2>1. Ingredientes (Precios)</h2>
+        <input type="text" id="ingNom" placeholder="Nombre (ej: Salmón)">
+        <input type="number" id="ingPre" placeholder="Precio x Kilo o Unidad">
+        <input type="number" id="ingMerma" placeholder="% Merma (ej: 10)" value="0">
+        <button onclick="guardarIngrediente()">Guardar Ingrediente</button>
+    </div>
+
+    <div class="card">
+        <h2>2. Crear Plato</h2>
+        <input type="text" id="platoNom" placeholder="Nombre del Plato">
+        <div id="contenedorIngredientesReceta"></div>
+        <button class="sec" onclick="agregarFilaIngrediente()">+ Añadir Insumo</button>
+        <button onclick="guardarPlato()">Calcular y Guardar Plato</button>
+    </div>
+
+    <div class="card">
+        <h2>3. Consolidado y Gráficos</h2>
+        <div class="chart-container">
+            <canvas id="graficoCostos"></canvas>
+        </div>
+        <table id="tablaPlatos">
+            <thead>
+                <tr>
+                    <th>Plato</th>
+                    <th>Costo Total</th>
+                    <th>Borrar</th>
+                </tr>
+            </thead>
+            <tbody></tbody>
+        </table>
+    </div>
+
+<script>
+    let ingredientes = JSON.parse(localStorage.getItem('ingredientes')) || [];
+    let platos = JSON.parse(localStorage.getItem('platos')) || [];
+    let chart;
+
+    function guardarIngrediente() {
+        const nom = document.getElementById('ingNom').value;
+        const pre = parseFloat(document.getElementById('ingPre').value);
+        const mer = parseFloat(document.getElementById('ingMerma').value);
+        if(nom && pre) {
+            ingredientes.push({ nom, pre, mer });
+            localStorage.setItem('ingredientes', JSON.stringify(ingredientes));
+            alert("Ingrediente guardado");
+            location.reload();
+        }
+    }
+
+    function agregarFilaIngrediente() {
+        const div = document.getElementById('contenedorIngredientesReceta');
+        const selectOptions = ingredientes.map((ing, i) => `<option value="${i}">${ing.nom}</option>`).join('');
+        const html = `
+            <div style="display:flex; gap:5px;">
+                <select class="selIng">${selectOptions}</select>
+                <input type="number" class="cantIng" placeholder="Cant (kg/un)">
+            </div>`;
+        div.insertAdjacentHTML('beforeend', html);
+    }
+
+    function guardarPlato() {
+        const nombre = document.getElementById('platoNom').value;
+        const sels = document.querySelectorAll('.selIng');
+        const cants = document.querySelectorAll('.cantIng');
+        let costoFinal = 0;
+
+        sels.forEach((sel, i) => {
+            const ing = ingredientes[sel.value];
+            const cantidad = parseFloat(cants[i].value);
+            // Cálculo con merma: Precio / (1 - %merma/100)
+            const precioReal = ing.pre / (1 - (ing.mer / 100));
+            costoFinal += precioReal * cantidad;
+        });
+
+        platos.push({ nombre, costo: costoFinal.toFixed(0) });
+        localStorage.setItem('platos', JSON.stringify(platos));
+        renderizarTodo();
+    }
+
+    function renderizarTodo() {
+        const tbody = document.querySelector('#tablaPlatos tbody');
+        tbody.innerHTML = platos.map((p, i) => `
+            <tr>
+                <td>${p.nombre}</td>
+                <td>$${p.costo}</td>
+                <td><button onclick="borrarPlato(${i})" style="padding:5px; background:red;">X</button></td>
+            </tr>
+        `).join('');
+        actualizarGrafico();
+    }
+
+    function borrarPlato(i) {
+        platos.splice(i, 1);
+        localStorage.setItem('platos', JSON.stringify(platos));
+        renderizarTodo();
+    }
+
+    function actualizarGrafico() {
+        const ctx = document.getElementById('graficoCostos').getContext('2d');
+        if(chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: platos.map(p => p.nombre),
+                datasets: [{
+                    label: 'Costo de Producción ($)',
+                    data: platos.map(p => p.costo),
+                    backgroundColor: '#d4a373'
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false }
+        });
+    }
+
+    renderizarTodo();
+</script>
+</body>
+</html>
