@@ -1,31 +1,111 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sistema La Pasarela</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        :root { --primary: #2c3e50; --secondary: #d4a373; --bg: #f4f7f6; --text: #333; --accent: #27ae60; }
+        body { font-family: -apple-system, system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 10px; }
+        .tabs { display: flex; gap: 5px; margin-bottom: 15px; overflow-x: auto; padding-bottom: 5px; }
+        .tab-btn { flex: 1; padding: 12px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.8rem; min-width: 110px; }
+        .tab-btn.active { background: var(--primary); color: white; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px; }
+        h2 { margin: 0 0 15px 0; font-size: 1.1rem; color: var(--primary); border-bottom: 2px solid var(--secondary); display: inline-block; }
+        label { display: block; font-size: 0.8rem; font-weight: bold; color: #666; margin-top: 10px; }
+        input, select, button { width: 100%; padding: 10px; margin: 5px 0 10px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 15px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
+        .borrar-btn { background: #e74c3c; width: auto; padding: 5px 10px; font-size: 11px; }
+        table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 0.85rem; }
+        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        th { background: #f8f8f8; }
+        .fila-receta { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 3px solid var(--secondary); }
+    </style>
+</head>
+<body>
+
+    <div class="tabs">
+        <button class="tab-btn active" onclick="openTab('registro')">1. Insumos</button>
+        <button class="tab-btn" onclick="openTab('recetas')">2. Recetas</button>
+        <button class="tab-btn" onclick="openTab('inventario')">3. Inventario</button>
+        <button class="tab-btn" onclick="openTab('resumen')">4. Consolidado</button>
+    </div>
+
+    <div id="registro" class="tab-content active">
+        <div class="card">
+            <h2 id="tituloInsumo">Registrar Insumo</h2>
+            <input type="text" id="ingNom" placeholder="Nombre (ej: Salmón)">
+            <label>Categoría</label>
+            <select id="ingCat">
+                <option value="Animal">Proteína Animal</option>
+                <option value="Tierra">De la Tierra / Vegetal</option>
+            </select>
+            <label>Precio de Compra</label>
+            <input type="number" id="ingPre">
+            <label>% Merma</label>
+            <input type="number" id="ingMerma" value="0">
+            <button onclick="guardarIngrediente()" id="btnGuardarIng">GUARDAR Y SINCRONIZAR</button>
+        </div>
+    </div>
+
+    <div id="recetas" class="tab-content">
+        <div class="card">
+            <h2>Nueva Receta</h2>
+            <input type="text" id="platoNom" placeholder="Nombre del Plato">
+            <label>Categoría</label>
+            <select id="platoCat">
+                <option value="Hamburguesa/Sandwich">Hamburguesa / Sandwich</option>
+                <option value="Fondo">Plato de Fondo</option>
+                <option value="Aperitivo">Aperitivo / Piqueo</option>
+            </select>
+            <div id="contenedorIngredientesReceta"></div>
+            <button onclick="agregarFilaIngrediente()" style="background:var(--secondary)">+ AÑADIR INGREDIENTE</button>
+            <button onclick="guardarPlato()" style="background:var(--accent); margin-top:10px;">GUARDAR PLATO</button>
+        </div>
+    </div>
+
+    <div id="inventario" class="tab-content">
+        <div class="card">
+            <h2>Inventario en la Nube</h2>
+            <table id="tablaGralInventario">
+                <thead><tr><th>Nombre</th><th>Precio</th><th>Acción</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div id="resumen" class="tab-content">
+        <div class="card">
+            <h2>Costos de Platos</h2>
+            <div style="height:300px;"><canvas id="graficoCostos"></canvas></div>
+            <table id="tablaPlatosConsolidado">
+                <thead><tr><th>Plato</th><th>Costo</th><th>Acción</th></tr></thead>
+                <tbody></tbody>
+            </table>
+        </div>
+    </div>
+
 <script>
-    // 1. PEGA AQUÍ TU URL DE GOOGLE (La que termina en /exec)
+    // === CONFIGURACIÓN ===
     const MI_URL_DE_GOOGLE = "https://script.google.com/macros/s/AKfycbzRLGnM-3FGugmyiyH__YxblnfpTpljKcbD0HAx6Geu_2wu2LvNXGPNc6aspVbN1O3P/exec"; 
 
     let ingredientes = [];
     let platos = JSON.parse(localStorage.getItem('platos')) || [];
     let chart;
 
-    const coloresCat = {
-        "Fondo": "#e74c3c", "Aperitivo": "#f1c40f", "Hamburguesa/Sandwich": "#d4a373", "Alcohol": "#9b59b6", "Bebida": "#3498db"
-    };
-
-    // FUNCIÓN PARA CARGAR DESDE LA NUBE (Android y Público)
     async function cargarDesdeNube() {
         try {
             const respuesta = await fetch(MI_URL_DE_GOOGLE);
             const filas = await respuesta.json();
-            ingredientes = filas.map(f => ({
-                nom: f[0], cat: f[1], pre: f[2], mer: f[3], uni: 'un'
-            }));
+            ingredientes = filas.map(f => ({ nom: f[0], cat: f[1], pre: f[2], mer: f[3] }));
             renderInventario();
             renderResumenConsolidado();
-        } catch (error) {
-            console.log("Cargando datos locales o esperando conexión...");
-        }
+        } catch (e) { console.log("Error de conexión"); }
     }
 
-    // FUNCIÓN PARA GUARDAR EN LA NUBE (Desde el Mac)
     async function guardarIngrediente() {
         const data = {
             nom: document.getElementById('ingNom').value,
@@ -33,122 +113,58 @@
             pre: document.getElementById('ingPre').value,
             mer: document.getElementById('ingMerma').value
         };
+        if(!data.nom || !data.pre) return alert("Faltan datos");
 
-        if(!data.nom || !data.pre) return alert("Completa los datos");
-
-        // Mostrar aviso de carga
-        const btn = document.getElementById('btnGuardarIng');
-        btn.innerText = "SINCRONIZANDO...";
-        btn.disabled = true;
-
-        await fetch(MI_URL_DE_GOOGLE, {
-            method: 'POST',
-            mode: 'no-cors',
-            body: JSON.stringify(data)
-        });
-
-        alert("¡Éxito! Guardado en Google Sheets y disponible para el público.");
+        document.getElementById('btnGuardarIng').innerText = "ENVIANDO A GOOGLE...";
+        await fetch(MI_URL_DE_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(data) });
+        
+        alert("¡Guardado! Los datos aparecerán en todos tus dispositivos.");
         location.reload();
     }
-
-    // --- EL RESTO DE LAS FUNCIONES SE MANTIENEN IGUAL ---
 
     function openTab(tabId) {
         document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(tabId).classList.add('active');
-        if(tabId === 'inventario') renderInventario();
-        if(tabId === 'resumen') renderResumenConsolidado();
+        event.currentTarget.classList.add('active');
     }
 
     function renderInventario() {
         const tbody = document.querySelector('#tablaGralInventario tbody');
-        if(!tbody) return;
-        tbody.innerHTML = ingredientes.map((ing, i) => `
-            <tr>
-                <td>${ing.nom}</td>
-                <td>${ing.cat}</td>
-                <td>$${ing.pre}</td>
-                <td><button class="borrar-btn">Nube</button></td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = ingredientes.map(ing => `<tr><td>${ing.nom}</td><td>$${ing.pre}</td><td><small>Nube</small></td></tr>`).join('');
     }
 
-    function agregarFilaIngrediente(ingIdx = 0, cant = "", uni = "base") {
+    function agregarFilaIngrediente() {
         const div = document.getElementById('contenedorIngredientesReceta');
         const ops = ingredientes.map((ing, i) => `<option value="${i}">${ing.nom}</option>`).join('');
-        const html = `
-            <div class="fila-receta" style="display:flex; gap:5px;">
-                <select class="selIng" style="flex:2">${ops}</select>
-                <input type="number" class="cantIng" value="${cant}" placeholder="Cant." style="flex:1">
-                <select class="uniUso" style="flex:1">
-                    <option value="base">Unidad</option>
-                    <option value="gr">gr/ml</option>
-                </select>
-            </div>`;
-        div.insertAdjacentHTML('beforeend', html);
+        div.insertAdjacentHTML('beforeend', `<div class="fila-receta" style="display:flex; gap:5px;"><select class="selIng" style="flex:2">${ops}</select><input type="number" class="cantIng" placeholder="Cant." style="flex:1"></div>`);
     }
 
     function guardarPlato() {
         const sels = document.querySelectorAll('.selIng');
         const cants = document.querySelectorAll('.cantIng');
-        const unis = document.querySelectorAll('.uniUso');
         let costoTotal = 0;
-        let items = [];
-
         sels.forEach((sel, i) => {
             const ing = ingredientes[sel.value];
-            const cantVal = parseFloat(cants[i].value);
-            const uniVal = unis[i].value;
-            let pReal = ing.pre / (1 - (ing.mer/100));
-            if(uniVal === 'gr') pReal /= 1000;
-            costoTotal += pReal * cantVal;
-            items.push({ ingIdx: sel.value, cant: cantVal, uni: uniVal });
+            costoTotal += (ing.pre / (1 - (ing.mer/100))) * parseFloat(cants[i].value || 0);
         });
-
-        platos.push({
-            nombre: document.getElementById('platoNom').value,
-            categoria: document.getElementById('platoCat').value,
-            costo: Math.round(costoTotal)
-        });
-
+        platos.push({ nombre: document.getElementById('platoNom').value, costo: Math.round(costoTotal), categoria: document.getElementById('platoCat').value });
         localStorage.setItem('platos', JSON.stringify(platos));
         location.reload();
     }
 
     function renderResumenConsolidado() {
         const tbody = document.querySelector('#tablaPlatosConsolidado tbody');
-        if(!tbody) return;
-        tbody.innerHTML = platos.map((p, i) => `
-            <tr>
-                <td>${p.nombre}</td>
-                <td>${p.categoria}</td>
-                <td>$${p.costo.toLocaleString()}</td>
-                <td><button class="borrar-btn" onclick="platos.splice(${i},1); localStorage.setItem('platos', JSON.stringify(platos)); location.reload();">X</button></td>
-            </tr>
-        `).join('');
+        tbody.innerHTML = platos.map((p, i) => `<tr><td>${p.nombre}</td><td>$${p.costo}</td><td><button class="borrar-btn" onclick="platos.splice(${i},1); localStorage.setItem('platos',JSON.stringify(platos)); location.reload();">X</button></td></tr>`).join('');
         actualizarGrafico();
     }
 
     function actualizarGrafico() {
         const ctx = document.getElementById('graficoCostos').getContext('2d');
         if(chart) chart.destroy();
-        chart = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: platos.map(p => p.nombre),
-                datasets: [{
-                    label: 'Costo ($)',
-                    data: platos.map(p => p.costo),
-                    backgroundColor: platos.map(p => coloresCat[p.categoria] || '#999'),
-                    indexAxis: 'y'
-                }]
-            },
-            options: { responsive: true, maintainAspectRatio: false }
-        });
+        chart = new Chart(ctx, { type: 'bar', data: { labels: platos.map(p => p.nombre), datasets: [{ label: 'Costo', data: platos.map(p => p.costo), backgroundColor: '#d4a373' }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false } });
     }
 
-    // Iniciar carga
     window.onload = cargarDesdeNube;
 </script>
 </body>
