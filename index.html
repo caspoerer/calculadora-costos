@@ -3,25 +3,50 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>La Pasarela - Gestión Pro</title>
+    <title>La Pasarela - Gestión Integral</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #2c3e50; --secondary: #d4a373; --bg: #f4f7f6; --text: #333; --accent: #e74c3c; --success: #27ae60; }
-        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 60px; }
+        :root { 
+            --primary: #2c3e50; --secondary: #d4a373; --bg: #f4f7f6; --text: #333; 
+            --accent: #e74c3c; --success: #27ae60; --info: #3498db;
+        }
+        body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 60px; color: var(--text); }
+        
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 5px 0; overflow-x: auto; }
         .tab-btn { padding: 10px 15px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.7rem; white-space: nowrap; }
         .tab-btn.active { background: var(--primary); color: white; }
+        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
+        
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
-        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        .receta-detalle { font-size: 0.75rem; background: #fefae0; padding: 10px; border-radius: 8px; margin-top: 5px; border: 1px dashed #d4a373; }
-        .cat-tag { font-size: 0.65rem; background: var(--secondary); color: white; padding: 2px 6px; border-radius: 4px; text-transform: uppercase; }
-        .btn-xl { background: #1d6f42; margin-top: 10px; }
-        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
-        th, td { border: 1px solid #eee; padding: 8px; text-align: left; }
+        h2, h3 { color: var(--primary); margin-top: 0; }
+        
+        input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 14px; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button:hover { opacity: 0.9; }
+        
+        .btn-xl { background: #1d6f42; margin-bottom: 15px; }
+        .btn-edit { background: var(--info); width: auto; padding: 5px 10px; font-size: 11px; }
+        .btn-del { background: var(--accent); width: auto; padding: 5px 10px; font-size: 11px; }
+
+        table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
+        th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
+        th { background: #f8f8f8; }
+
+        .receta-item { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid #eee; }
+        .detalle-box { background: #fefae0; padding: 10px; border-radius: 8px; margin: 5px 0; font-size: 0.75rem; border-left: 3px solid var(--secondary); }
+        
+        .cat-Entrada { border-left: 5px solid #ffadad; }
+        .cat-Hamburguesa { border-left: 5px solid #ffd6a5; }
+        .cat-Plato { border-left: 5px solid #fdffb6; }
+        .cat-Ensalada { border-left: 5px solid #caffbf; }
+        .cat-Postre { border-left: 5px solid #9bf6ff; }
+        .cat-Alcohol { border-left: 5px solid #a0c4ff; }
+        .cat-SinAlcohol { border-left: 5px solid #bdb2ff; }
+
+        .loader { text-align: center; padding: 20px; font-weight: bold; color: var(--secondary); }
     </style>
 </head>
 <body>
@@ -29,57 +54,91 @@
     <div class="tabs">
         <button class="tab-btn active" onclick="cambiarTab('registro')">Insumos</button>
         <button class="tab-btn" onclick="cambiarTab('recetas')">Crear Receta</button>
+        <button class="tab-btn" onclick="cambiarTab('inventario')">Inventario</button>
         <button class="tab-btn" onclick="cambiarTab('resumen')">Consolidado / Carta</button>
     </div>
 
+    <div id="loading" class="loader" style="display:none;">Sincronizando datos...</div>
+
     <div id="registro" class="tab-content active">
         <div class="card">
-            <h2>Nuevo Insumo</h2>
-            <input type="text" id="ingNom" placeholder="Nombre">
-            <input type="number" id="ingPre" placeholder="Precio Compra">
+            <h2 id="tituloIng">Nuevo Insumo</h2>
+            <input type="text" id="ingNom" placeholder="Nombre (ej: Salmón)">
+            <input type="number" id="ingPre" placeholder="Precio Compra ($)">
             <input type="number" id="ingMerma" value="0" placeholder="% Merma">
-            <select id="ingUniCompra"><option value="kg">Kilo</option><option value="un">Unidad</option></select>
+            <select id="ingUniCompra">
+                <option value="kg">Kilo / Litro</option>
+                <option value="un">Unidad</option>
+            </select>
             <button onclick="enviarInsumo()">GUARDAR INSUMO</button>
         </div>
     </div>
 
     <div id="recetas" class="tab-content">
         <div class="card">
-            <h2>Configurar Plato</h2>
+            <h2 id="tituloPlato">Configurar Receta</h2>
             <input type="text" id="platoNom" placeholder="Nombre del Plato">
             <select id="platoTipo">
-                <option>Entrada</option>
-                <option>Hamburguesa/Sandwich</option>
-                <option>Plato de Fondo</option>
-                <option>Ensalada</option>
-                <option>Postre</option>
-                <option>Bebestible con Alcohol</option>
-                <option>Bebestible sin Alcohol</option>
+                <option value="Entrada">Entrada</option>
+                <option value="Hamburguesa/Sandwich">Hamburguesa/Sandwich</option>
+                <option value="Plato de Fondo">Plato de Fondo</option>
+                <option value="Ensalada">Ensalada</option>
+                <option value="Postre">Postre</option>
+                <option value="Bebestible con Alcohol">Bebestible con Alcohol</option>
+                <option value="Bebestible sin Alcohol">Bebestible sin Alcohol</option>
             </select>
             <div id="listaIngredientes"></div>
             <button onclick="nuevaFila()" style="background:var(--secondary)">+ AÑADIR INGREDIENTE</button>
-            <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR EN LA NUBE</button>
+            <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR RECETA</button>
+        </div>
+    </div>
+
+    <div id="inventario" class="tab-content">
+        <div class="card">
+            <h2>Inventario de Insumos</h2>
+            <table>
+                <thead><tr><th>Nombre</th><th>Precio</th><th>Acciones</th></tr></thead>
+                <tbody id="tablaInsumos"></tbody>
+            </table>
         </div>
     </div>
 
     <div id="resumen" class="tab-content">
-        <button onclick="exportarExcel()" class="btn-xl">📊 DESCARGAR EXCEL COMPLETO</button>
-        <div id="contenedorCategorias"></div>
+        <button onclick="exportarExcel()" class="btn-xl">📊 DESCARGAR EXCEL DE COSTOS</button>
+        <div class="card" style="height:300px;">
+            <canvas id="graficoCostos"></canvas>
+        </div>
+        <div id="contenedorCartas"></div>
     </div>
 
 <script>
-    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbwZSRn5i1s0O8TyeNlqrBixBLvr5a-pDzaeRstVhGoBKLbydZ1CI341BSZ_1yWh3qHFDg/exec";
+    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbwZSRn5i1s0O8TyeNlqrBixBLvr5a-pDzaeRstVhGoBKLbydZ1CI341BSZ_1yWh3qHFDg/exec"; // REEMPLAZAR POR TU URL
     let baseInsumos = [];
     let baseRecetas = [];
+    let chart;
+
+    const COLORES_CAT = {
+        "Entrada": "#ffadad",
+        "Hamburguesa/Sandwich": "#ffd6a5",
+        "Plato de Fondo": "#fdffb6",
+        "Ensalada": "#caffbf",
+        "Postre": "#9bf6ff",
+        "Bebestible con Alcohol": "#a0c4ff",
+        "Bebestible sin Alcohol": "#bdb2ff"
+    };
 
     window.onload = cargarTodo;
 
     async function cargarTodo() {
-        const res = await fetch(URL_GOOGLE);
-        const data = await res.json();
-        baseInsumos = data.insumos;
-        baseRecetas = data.recetas;
-        renderizar();
+        document.getElementById('loading').style.display = 'block';
+        try {
+            const res = await fetch(URL_GOOGLE);
+            const data = await res.json();
+            baseInsumos = data.insumos;
+            baseRecetas = data.recetas;
+            renderizar();
+        } catch(e) { console.error(e); }
+        document.getElementById('loading').style.display = 'none';
     }
 
     function cambiarTab(id) {
@@ -87,6 +146,20 @@
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
         if(event) event.currentTarget.classList.add('active');
+    }
+
+    function nuevaFila(nombre = '', cant = '', tipo = 'gr') {
+        const cont = document.getElementById('listaIngredientes');
+        const opciones = baseInsumos.map(i => `<option value="${i[0]}" ${i[0]==nombre?'selected':''}>${i[0]}</option>`).join('');
+        cont.insertAdjacentHTML('beforeend', `
+            <div class="fila-receta" style="display:flex; gap:5px; margin-bottom:5px;">
+                <select class="selI" style="flex:2">${opciones}</select>
+                <input type="number" class="cantI" value="${cant}" placeholder="Cant" style="flex:1">
+                <select class="tipoU" style="flex:1">
+                    <option value="gr" ${tipo=='gr'?'selected':''}>gr/ml</option>
+                    <option value="un" ${tipo=='un'?'selected':''}>un</option>
+                </select>
+            </div>`);
     }
 
     async function enviarInsumo() {
@@ -102,29 +175,15 @@
         location.reload();
     }
 
-    function nuevaFila() {
-        const cont = document.getElementById('listaIngredientes');
-        const opciones = baseInsumos.map(i => `<option value="${i[0]}">${i[0]}</option>`).join('');
-        cont.insertAdjacentHTML('beforeend', `
-            <div class="fila-receta" style="display:flex; gap:5px; margin-bottom:5px;">
-                <select class="selI" style="flex:2">${opciones}</select>
-                <input type="number" class="cantI" placeholder="Cant" style="flex:1">
-                <select class="tipoU" style="flex:1"><option value="gr">gr/ml</option><option value="un">un</option></select>
-            </div>`);
-    }
-
     async function guardarReceta() {
         const nom = document.getElementById('platoNom').value;
         const tipo = document.getElementById('platoTipo').value;
         const sels = document.querySelectorAll('.selI');
         const cants = document.querySelectorAll('.cantI');
         const tipos = document.querySelectorAll('.tipoU');
-        
         let lista = [];
-        sels.forEach((s, i) => {
-            lista.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value });
-        });
-
+        sels.forEach((s, i) => { if(cants[i].value) lista.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value }); });
+        
         await fetch(URL_GOOGLE, { 
             method: 'POST', mode: 'no-cors', 
             body: JSON.stringify({ nombre: nom, tipoPlato: tipo, ingredientes: lista, esReceta: true }) 
@@ -132,68 +191,128 @@
         location.reload();
     }
 
-    function renderizar() {
-        const cont = document.getElementById('contenedorCategorias');
-        cont.innerHTML = '';
-        
-        const categorias = ["Entrada", "Hamburguesa/Sandwich", "Plato de Fondo", "Ensalada", "Postre", "Bebestible con Alcohol", "Bebestible sin Alcohol"];
-        
-        categorias.forEach(cat => {
-            const platosCat = baseRecetas.filter(r => r[2] === cat);
-            if(platosCat.length === 0) return;
+    async function eliminarItem(tipo, index) {
+        if(!confirm("¿Deseas eliminar este registro?")) return;
+        const sheet = (tipo === 'insumo') ? "Insumos" : "Recetas";
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) });
+        location.reload();
+    }
 
-            let html = `<div class="card"><h3>${cat}</h3>`;
-            platosCat.forEach((r, idx) => {
-                let costoPlato = 0;
-                let detalleHtml = '<ul>';
+    function editarInsumo(idx) {
+        const i = baseInsumos[idx];
+        document.getElementById('ingNom').value = i[0];
+        document.getElementById('ingPre').value = i[2];
+        document.getElementById('ingMerma').value = i[3];
+        document.getElementById('ingUniCompra').value = i[4];
+        cambiarTab('registro');
+    }
+
+    function editarReceta(idx) {
+        const r = baseRecetas[idx];
+        document.getElementById('platoNom').value = r[0];
+        document.getElementById('platoTipo').value = r[2];
+        document.getElementById('listaIngredientes').innerHTML = '';
+        JSON.parse(r[1]).forEach(ing => nuevaFila(ing.nombreInsumo, ing.cantidad, ing.tipo));
+        cambiarTab('recetas');
+    }
+
+    function renderizar() {
+        // Render Insumos en Inventario
+        const tI = document.getElementById('tablaInsumos');
+        tI.innerHTML = baseInsumos.map((i, idx) => `
+            <tr>
+                <td>${i[0]}</td>
+                <td>$${Number(i[2]).toLocaleString()}</td>
+                <td>
+                    <button class="btn-edit" onclick="editarInsumo(${idx})">E</button>
+                    <button class="btn-del" onclick="eliminarItem('insumo', ${idx})">X</button>
+                </td>
+            </tr>`).join('');
+
+        // Render Consolidado
+        const cont = document.getElementById('contenedorCartas');
+        cont.innerHTML = '';
+        let datosGrafico = [];
+
+        Object.keys(COLORES_CAT).forEach(cat => {
+            const platos = baseRecetas.filter(r => r[2] === cat);
+            if(platos.length === 0) return;
+
+            let catHtml = `<div class="card"><h3>${cat}</h3>`;
+            platos.forEach((r, idxOriginal) => {
+                let costoTotal = 0;
+                let ingHtml = '';
                 const ingrs = JSON.parse(r[1]);
 
                 ingrs.forEach(ing => {
                     const vivo = baseInsumos.find(b => b[0] === ing.nombreInsumo);
-                    let subtotal = 0;
+                    let sub = 0;
                     if(vivo) {
                         const pReal = vivo[2] / (1 - (vivo[3]/100));
-                        subtotal = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
-                        costoPlato += subtotal;
+                        sub = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
+                        costoTotal += sub;
                     }
-                    detalleHtml += `<li>${ing.nombreInsumo}: ${ing.cantidad}${ing.tipo} ($${Math.round(subtotal)})</li>`;
+                    ingHtml += `<div>• ${ing.nombreInsumo}: ${ing.cantidad}${ing.tipo} ($${Math.round(sub)})</div>`;
                 });
-                detalleHtml += '</ul>';
 
-                html += `
-                    <div style="border-bottom:1px solid #eee; padding:10px 0;">
-                        <div style="display:flex; justify-content:space-between; font-weight:bold;">
-                            <span>${r[0]}</span>
-                            <span style="color:var(--success)">$${Math.round(costoPlato).toLocaleString()}</span>
+                // Buscar índice real en baseRecetas para eliminar/editar
+                const idxReal = baseRecetas.findIndex(br => br[0] === r[0] && br[1] === r[1]);
+
+                catHtml += `
+                    <div class="receta-item">
+                        <div style="flex:2">
+                            <strong>${r[0]}</strong> <span style="color:var(--success)">($${Math.round(costoTotal)})</span>
+                            <div class="detalle-box">${ingHtml}</div>
                         </div>
-                        <div class="receta-detalle">${detalleHtml}</div>
+                        <div style="flex:1; text-align:right;">
+                            <button class="btn-edit" onclick="editarReceta(${idxReal})">E</button>
+                            <button class="btn-del" onclick="eliminarItem('receta', ${idxReal})">X</button>
+                        </div>
                     </div>`;
+                
+                datosGrafico.push({ nombre: r[0], costo: Math.round(costoTotal), color: COLORES_CAT[cat] });
             });
-            html += `</div>`;
-            cont.insertAdjacentHTML('beforeend', html);
+            cont.insertAdjacentHTML('beforeend', catHtml + `</div>`);
+        });
+
+        dibujar(datosGrafico);
+    }
+
+    function dibujar(datos) {
+        const ctx = document.getElementById('graficoCostos').getContext('2d');
+        if(chart) chart.destroy();
+        chart = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: datos.map(d => d.nombre),
+                datasets: [{
+                    label: 'Costo por Plato ($)',
+                    data: datos.map(d => d.costo),
+                    backgroundColor: datos.map(d => d.color)
+                }]
+            },
+            options: { responsive: true, maintainAspectRatio: false, indexAxis: 'y' }
         });
     }
 
     function exportarExcel() {
-        let datosExcel = [["Categoría", "Plato", "Ingrediente", "Cantidad", "Unidad", "Costo Proporcional"]];
-        
+        let rows = [["Categoría", "Plato", "Ingrediente", "Cantidad", "Unidad", "Costo Subtotal"]];
         baseRecetas.forEach(r => {
             const ingrs = JSON.parse(r[1]);
             ingrs.forEach(ing => {
                 const vivo = baseInsumos.find(b => b[0] === ing.nombreInsumo);
-                let subtotal = 0;
+                let sub = 0;
                 if(vivo) {
                     const pReal = vivo[2] / (1 - (vivo[3]/100));
-                    subtotal = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
+                    sub = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
                 }
-                datosExcel.push([r[2], r[0], ing.nombreInsumo, ing.cantidad, ing.tipo, Math.round(subtotal)]);
+                rows.push([r[2], r[0], ing.nombreInsumo, ing.cantidad, ing.tipo, Math.round(sub)]);
             });
         });
-
-        const ws = XLSX.utils.aoa_to_sheet(datosExcel);
+        const ws = XLSX.utils.aoa_to_sheet(rows);
         const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Costos La Pasarela");
-        XLSX.writeFile(wb, "Consolidado_Recetas_Pasarela.xlsx");
+        XLSX.utils.book_append_sheet(wb, ws, "Costos");
+        XLSX.writeFile(wb, "Costos_LaPasarela.xlsx");
     }
 </script>
 </body>
