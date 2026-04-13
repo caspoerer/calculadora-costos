@@ -8,30 +8,23 @@
     <style>
         :root { --primary: #2c3e50; --secondary: #d4a373; --bg: #f4f7f6; --text: #333; --accent: #e74c3c; --edit: #3498db; --success: #27ae60; }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 10px; padding-bottom: 60px; }
-        
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 5px 0; }
         .tab-btn { flex: 1; padding: 12px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.75rem; transition: 0.3s; }
         .tab-btn.active { background: var(--primary); color: white; }
-        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h2 { font-size: 1.1rem; color: var(--primary); margin-top: 0; border-bottom: 2px solid var(--secondary); display: inline-block; }
-        
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 14px; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
-        
         .btn-acc { width: auto; padding: 6px 12px; font-size: 11px; margin: 2px; color: white; border-radius: 4px; border: none; font-weight: bold; }
         .btn-edit { background: var(--edit); }
         .btn-del { background: var(--accent); }
-        
         table { width: 100%; border-collapse: collapse; font-size: 0.85rem; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
         th { background: #f8f8f8; }
-        
         .fila-receta { background: #f9f9f9; padding: 10px; border-radius: 8px; margin-bottom: 10px; border-left: 4px solid var(--secondary); }
-        .loader { text-align: center; color: var(--secondary); font-weight: bold; padding: 20px; }
+        .loader { text-align: center; color: var(--secondary); font-weight: bold; padding: 20px; display: none; }
     </style>
 </head>
 <body>
@@ -48,11 +41,8 @@
     <div id="registro" class="tab-content active">
         <div class="card">
             <h2 id="tituloIng">Nuevo Insumo</h2>
-            <input type="text" id="ingNom" placeholder="Nombre (ej: Salmón)">
-            <select id="ingCat">
-                <option>Proteína</option>
-                <option>No Proteína</option>
-            </select>
+            <input type="text" id="ingNom" placeholder="Nombre (ej: Carne)">
+            <select id="ingCat"><option>Proteína</option><option>No Proteína</option></select>
             <select id="ingUniCompra">
                 <option value="kg">Kilo (Kg)</option>
                 <option value="lt">Litro (Lt)</option>
@@ -60,23 +50,23 @@
             </select>
             <input type="number" id="ingPre" placeholder="Precio Compra ($)">
             <input type="number" id="ingMerma" value="0" placeholder="% Merma">
-            <button onclick="enviarInsumo()" id="btnGuardarI">GUARDAR INSUMO</button>
+            <button onclick="enviarInsumo()">GUARDAR INSUMO</button>
         </div>
     </div>
 
     <div id="recetas" class="tab-content">
         <div class="card">
             <h2 id="tituloPlato">Configurar Receta</h2>
-            <input type="text" id="platoNom" placeholder="Nombre del Plato">
+            <input type="text" id="platoNom" placeholder="Nombre del Plato (ej: Hamburguesa Gaucha)">
             <div id="listaIngredientes"></div>
             <button onclick="nuevaFila()" style="background:var(--secondary)">+ AÑADIR INSUMO</button>
-            <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR ESTRUCTURA</button>
+            <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR RECETA</button>
         </div>
     </div>
 
     <div id="inventario" class="tab-content">
         <div class="card">
-            <h2>Precios Vigentes</h2>
+            <h2>Precios de Insumos</h2>
             <table id="tablaInventario">
                 <thead><tr><th>Insumo</th><th>Precio</th><th>Acción</th></tr></thead>
                 <tbody></tbody>
@@ -86,18 +76,17 @@
 
     <div id="resumen" class="tab-content">
         <div class="card">
-            <h2>Costos en Tiempo Real</h2>
+            <h2>Costos Totales de la Carta</h2>
             <div style="height:200px;"><canvas id="miGrafico"></canvas></div>
             <table id="tablaPlatos">
-                <thead><tr><th>Plato</th><th>Costo Actual</th><th>Acción</th></tr></thead>
+                <thead><tr><th>Plato</th><th>Costo Unitario</th><th>Acción</th></tr></thead>
                 <tbody></tbody>
             </table>
         </div>
     </div>
 
 <script>
-    // 🔗 CONFIGURACIÓN
-    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbwbNzsa74-OvI39eK4qs6Y6X1UY6ddH6WQ_gZObSxD_JGl_Xji-6TRHKn05iqsCmd8nXA/exec"; 
+    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbxqqI7NjjomhfQI6R-RrsqPAmEAWGu-Mg228hzF9hUOyy838pRZLNLcP75wZDsc42AE4Q/exec"; 
     
     let baseInsumos = [];
     let baseRecetas = [];
@@ -110,10 +99,10 @@
         try {
             const res = await fetch(URL_GOOGLE);
             const data = await res.json();
-            baseInsumos = data.insumos; // Ya viene filtrado por el último precio desde el Script
+            baseInsumos = data.insumos; 
             baseRecetas = data.recetas;
             renderizar();
-        } catch(e) { alert("Error de conexión con Google Sheets"); }
+        } catch(e) { console.error("Error cargando datos", e); }
         document.getElementById('loading').style.display = 'none';
     }
 
@@ -133,8 +122,7 @@
             uni: document.getElementById('ingUniCompra').value,
             esReceta: false
         };
-        if(!d.nom || !d.pre) return alert("Completa nombre y precio");
-        
+        if(!d.nom || !d.pre) return alert("Falta nombre o precio");
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) });
         location.reload();
     }
@@ -142,7 +130,6 @@
     function nuevaFila(nombreInsumo = '', cantidad = '', tipo = 'gr') {
         const cont = document.getElementById('listaIngredientes');
         const opciones = baseInsumos.map(ing => `<option value="${ing[0]}" ${ing[0]==nombreInsumo?'selected':''}>${ing[0]}</option>`).join('');
-        
         cont.insertAdjacentHTML('beforeend', `
             <div class="fila-receta">
                 <select class="selI">${opciones}</select>
@@ -161,30 +148,19 @@
         const sels = document.querySelectorAll('.selI');
         const cants = document.querySelectorAll('.cantI');
         const tipos = document.querySelectorAll('.tipoU');
-        
         let listaIng = [];
         sels.forEach((s, i) => {
-            listaIng.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value });
+            if(cants[i].value > 0) listaIng.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value });
         });
-
-        if(!nom || listaIng.length === 0) return alert("Falta nombre o ingredientes");
-
-        await fetch(URL_GOOGLE, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({ nombre: nom, ingredientes: listaIng, esReceta: true }) 
-        });
+        if(!nom || listaIng.length === 0) return alert("Revisa el nombre e ingredientes");
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ nombre: nom, ingredientes: listaIng, esReceta: true }) });
         location.reload();
     }
 
     async function eliminarFila(tipo, index) {
-        if(!confirm("¿Eliminar permanentemente?")) return;
+        if(!confirm("¿Eliminar este registro de la nube?")) return;
         const sheet = (tipo === 'insumo') ? "Insumos" : "Recetas";
-        await fetch(URL_GOOGLE, { 
-            method: 'POST', 
-            mode: 'no-cors', 
-            body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) 
-        });
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) });
         location.reload();
     }
 
@@ -201,19 +177,25 @@
                 </td>
             </tr>`).join('');
 
-        // Render Recetas con cálculo vivo
+        // Render Recetas (CÁLCULO AUTOMÁTICO)
         const tR = document.querySelector('#tablaPlatos tbody');
         const platosCalc = baseRecetas.map((r, idx) => {
             let costo = 0;
-            const ingrs = JSON.parse(r[1]);
-            ingrs.forEach(ing => {
-                const vivo = baseInsumos.find(b => b[0] === ing.nombreInsumo);
-                if(vivo) {
-                    const pReal = vivo[2] / (1 - (vivo[3]/100));
-                    costo += (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
-                }
-            });
-            return { nombre: r[0], costo: Math.round(costo), idx: idx, estructura: ingrs };
+            let nombrePlato = r[0];
+            let ingredientesJSON = r[1]; // Columna B (Donde está el texto con corchetes)
+            
+            try {
+                const ingrs = JSON.parse(ingredientesJSON);
+                ingrs.forEach(ing => {
+                    const vivo = baseInsumos.find(b => b[0] === ing.nombreInsumo);
+                    if(vivo) {
+                        const pReal = vivo[2] / (1 - (vivo[3]/100));
+                        costo += (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
+                    }
+                });
+            } catch(e) { console.error("Error en JSON de:", nombrePlato); }
+            
+            return { nombre: nombrePlato, costo: Math.round(costo), idx: idx };
         });
 
         tR.innerHTML = platosCalc.map(p => `
@@ -232,7 +214,6 @@
     function editarIng(idx) {
         const i = baseInsumos[idx];
         document.getElementById('ingNom').value = i[0];
-        document.getElementById('ingCat').value = i[1];
         document.getElementById('ingPre').value = i[2];
         document.getElementById('ingMerma').value = i[3];
         document.getElementById('ingUniCompra').value = i[4];
@@ -243,7 +224,9 @@
         const p = baseRecetas[idx];
         document.getElementById('platoNom').value = p[0];
         document.getElementById('listaIngredientes').innerHTML = '';
-        JSON.parse(p[1]).forEach(ing => nuevaFila(ing.nombreInsumo, ing.cantidad, ing.tipo));
+        try {
+            JSON.parse(p[1]).forEach(ing => nuevaFila(ing.nombreInsumo, ing.cantidad, ing.tipo));
+        } catch(e) {}
         cambiarTab('recetas');
     }
 
