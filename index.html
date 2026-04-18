@@ -5,7 +5,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Administración La Pasarela</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.0/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { 
             --primary: #2c3e50; --secondary: #d4a373; --bg: #f4f7f6; --text: #333; 
@@ -13,7 +12,7 @@
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); }
         
-        /* PANTALLA DE LOGIN */
+        /* LOGIN */
         #login-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000;
@@ -22,10 +21,8 @@
             background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
             width: 90%; max-width: 350px; text-align: center;
         }
-        .login-card h2 { color: var(--primary); margin: 0 0 10px 0; }
-        .login-card input { margin-bottom: 10px; border: 1px solid #ddd; }
         
-        /* APP PRINCIPAL (Oculta hasta loguear) */
+        /* APP PRINCIPAL */
         #main-app { display: none; padding: 10px; padding-bottom: 60px; }
 
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 5px 0; overflow-x: auto; }
@@ -39,14 +36,13 @@
         h2, h3 { color: var(--primary); margin-top: 0; }
         
         input, select, button { width: 100%; padding: 12px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 14px; }
-        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.3s; }
+        button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; }
         
         .grid-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .chart-container { background: white; padding: 10px; border-radius: 12px; height: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
 
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-        th { background: #f8f8f8; }
 
         .btn-edit { background: var(--info); width: auto; padding: 6px 12px; font-size: 11px; margin-right: 5px; }
         .btn-del { background: var(--accent); width: auto; padding: 6px 12px; font-size: 11px; }
@@ -56,9 +52,13 @@
         
         .badge-fc { font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; color: white; font-weight: bold; display: inline-block; margin: 5px 0; }
         
+        /* NUEVO: ÁREA DE COSTOS EN RECETAS */
         #areaSugerido { background: #e1f5fe; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--info); }
-        .flex-input { display: flex; gap: 15px; align-items: center; }
-        
+        .stats-receta { display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
+        .stat-box { flex: 1; text-align: center; }
+        .stat-box small { display: block; font-size: 0.65rem; color: #666; text-transform: uppercase; }
+        .stat-box span { font-weight: bold; font-size: 1.1rem; }
+
         .loader { text-align: center; padding: 20px; font-weight: bold; color: var(--secondary); border: 2px solid; border-radius: 10px; margin: 10px; }
     </style>
 </head>
@@ -67,10 +67,10 @@
     <div id="login-overlay">
         <div class="login-card">
             <h2>La Pasarela</h2>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 20px;">Panel de Administración</p>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 20px;">Administración de Costos</p>
             <input type="text" id="userInput" placeholder="Usuario">
             <input type="password" id="passInput" placeholder="Contraseña">
-            <button onclick="validarAcceso()" style="background: var(--secondary);">INGRESAR</button>
+            <button onclick="validarAcceso()" style="background: var(--secondary);">ENTRAR</button>
             <p id="errorLogin" style="color: var(--accent); font-size: 0.8rem; display: none; margin-top: 10px;">Credenciales incorrectas</p>
         </div>
     </div>
@@ -80,38 +80,33 @@
             <button class="tab-btn active" onclick="cambiarTab('registro')">Nuevo Insumo</button>
             <button class="tab-btn" onclick="cambiarTab('inventario')">Inventario Pro</button>
             <button class="tab-btn" onclick="cambiarTab('recetas')">Crear Receta</button>
-            <button class="tab-btn" onclick="cambiarTab('resumen')">Consolidado / Análisis</button>
+            <button class="tab-btn" onclick="cambiarTab('resumen')">Consolidado</button>
+            <button onclick="cerrarSesion()" style="width:auto; background:none; color:var(--accent); font-size:0.7rem; border:none; padding:0 10px;">SALIR</button>
         </div>
 
-        <div id="loading" class="loader" style="display:none;">⏳ Sincronizando con Google Sheets...</div>
+        <div id="loading" class="loader" style="display:none;">⏳ Sincronizando datos...</div>
 
         <div id="registro" class="tab-content active">
             <div class="card">
-                <h2 id="tituloIng">Configurar Insumo</h2>
-                <input type="text" id="ingNom" placeholder="Nombre (ej: Filete de Vacuno)">
+                <h2>Configurar Insumo</h2>
+                <input type="text" id="ingNom" placeholder="Nombre (ej: Filete)">
                 <input type="number" id="ingPre" placeholder="Precio Compra ($)">
                 <input type="number" id="ingMerma" value="0" placeholder="% Merma">
                 <select id="ingUniCompra">
                     <option value="kg">Kilo / Litro</option>
                     <option value="un">Unidad</option>
                 </select>
-                <button onclick="enviarInsumo()">GUARDAR / ACTUALIZAR PRECIO</button>
+                <button onclick="enviarInsumo()">GUARDAR INSUMO</button>
             </div>
         </div>
 
         <div id="inventario" class="tab-content">
             <div class="card">
-                <h2>Gestión de Inventario</h2>
-                <input type="text" id="searchInsumo" placeholder="🔍 Buscar ingrediente..." onkeyup="filtrarInsumos()" style="border: 2px solid var(--secondary)">
+                <h2>Inventario</h2>
+                <input type="text" id="searchInsumo" placeholder="🔍 Buscar..." onkeyup="filtrarInsumos()">
                 <div style="max-height: 500px; overflow-y: auto;">
                     <table>
-                        <thead>
-                            <tr>
-                                <th>Insumo</th>
-                                <th>Precio Base</th>
-                                <th>Acciones</th>
-                            </tr>
-                        </thead>
+                        <thead><tr><th>Insumo</th><th>Precio</th><th>Acciones</th></tr></thead>
                         <tbody id="tablaInsumos"></tbody>
                     </table>
                 </div>
@@ -120,7 +115,7 @@
 
         <div id="recetas" class="tab-content">
             <div class="card">
-                <h2>Diseño de Receta</h2>
+                <h2>Nueva Receta</h2>
                 <input type="text" id="platoNom" placeholder="Nombre del Plato">
                 <select id="platoTipo">
                     <option>Entrada</option>
@@ -135,20 +130,35 @@
                 <button onclick="nuevaFila()" style="background:var(--secondary)">+ AÑADIR INGREDIENTE</button>
                 
                 <div id="areaSugerido" style="display:none;">
-                    <div class="flex-input">
+                    <div style="display:flex; gap:10px; align-items:center;">
                         <div style="flex:1">
-                            <small><strong>% Costo Objetivo:</strong></small>
-                            <input type="number" id="porcentajeObjetivo" value="35" onkeyup="calcularSugerido()" onchange="calcularSugerido()">
+                            <small><strong>% Food Cost Objetivo:</strong></small>
+                            <input type="number" id="porcentajeObjetivo" value="35" onkeyup="calcularSugerido()">
                         </div>
-                        <div style="flex:2">
+                        <div style="flex:1; text-align:right;">
                             <small><strong>Precio Sugerido:</strong></small>
-                            <div id="precioSugeridoTxt" style="font-size:1.4rem; font-weight:bold; color:var(--primary);">$0</div>
+                            <div id="precioSugeridoTxt" style="font-size:1.2rem; font-weight:bold;">$0</div>
+                        </div>
+                    </div>
+                    
+                    <div class="stats-receta">
+                        <div class="stat-box">
+                            <small>Costo Total</small>
+                            <span id="statCosto">$0</span>
+                        </div>
+                        <div class="stat-box">
+                            <small>% Costo Real</small>
+                            <span id="statPerc">0%</span>
+                        </div>
+                        <div class="stat-box">
+                            <small>Margen $</small>
+                            <span id="statMargen">$0</span>
                         </div>
                     </div>
                 </div>
                 
-                <input type="number" id="platoVenta" placeholder="Precio de Venta Final ($)">
-                <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR PLATO</button>
+                <input type="number" id="platoVenta" placeholder="Precio Venta Final ($)" onkeyup="calcularSugerido()">
+                <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR RECETA</button>
             </div>
         </div>
 
@@ -163,44 +173,62 @@
     </div>
 
 <script>
-    // --- CONFIGURACIÓN DE ACCESO ---
-    const CREDENCIALES = {
-        usuario: "admin",      
-        clave: "puelo2026"     
-    };
-
+    const CREDENCIALES = { usuario: "admin", clave: "puelo2026" };
     const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbxyJdl4JYzA18PvQGFPVoBROFiGGF8osVI-mzoKS67HoYDPyAjoirrO7lEnIHGiZqWMhA/exec"; 
     let baseInsumos = [];
     let baseRecetas = [];
     let charts = {};
+    let inactividadTimer;
 
     const COLORES_CAT = {
         "Entrada": "#ffadad", "Hamburguesa/Sandwich": "#ffd6a5", "Plato de Fondo": "#fdffb6",
         "Ensalada": "#caffbf", "Postre": "#9bf6ff", "Bebestible con Alcohol": "#a0c4ff", "Bebestible sin Alcohol": "#bdb2ff"
     };
 
-    // --- LÓGICA LOGIN ---
-    function validarAcceso() {
-        const u = document.getElementById('userInput').value;
-        const p = document.getElementById('passInput').value;
+    // --- SESIÓN Y LOGIN ---
+    window.onload = () => {
+        if(sessionStorage.getItem('sesionLaPasarela') === 'activa') {
+            mostrarApp();
+        }
+        resetTimer();
+    };
 
-        if(u === CREDENCIALES.usuario && p === CREDENCIALES.clave) {
-            document.getElementById('login-overlay').style.display = 'none';
-            document.getElementById('main-app').style.display = 'block';
-            cargarTodo();
+    function validarAcceso() {
+        if(document.getElementById('userInput').value === CREDENCIALES.usuario && 
+           document.getElementById('passInput').value === CREDENCIALES.clave) {
+            sessionStorage.setItem('sesionLaPasarela', 'activa');
+            mostrarApp();
         } else {
             document.getElementById('errorLogin').style.display = 'block';
         }
     }
 
-    // Permitir Enter para loguear
-    document.addEventListener('keypress', (e) => {
-        if(e.key === 'Enter' && document.getElementById('login-overlay').style.display !== 'none') {
-            validarAcceso();
-        }
-    });
+    function mostrarApp() {
+        document.getElementById('login-overlay').style.display = 'none';
+        document.getElementById('main-app').style.display = 'block';
+        cargarTodo();
+    }
 
-    // --- LÓGICA DE DATOS ---
+    function cerrarSesion() {
+        sessionStorage.removeItem('sesionLaPasarela');
+        location.reload();
+    }
+
+    // Timer de inactividad (10 min)
+    function resetTimer() {
+        clearTimeout(inactividadTimer);
+        inactividadTimer = setTimeout(() => {
+            if(sessionStorage.getItem('sesionLaPasarela')) {
+                alert("Sesión cerrada por inactividad");
+                cerrarSesion();
+            }
+        }, 10 * 60 * 1000); 
+    }
+
+    document.onmousemove = resetTimer;
+    document.onkeypress = resetTimer;
+
+    // --- LÓGICA DE NEGOCIO ---
     async function cargarTodo() {
         document.getElementById('loading').style.display = 'block';
         try {
@@ -228,7 +256,7 @@
                 <select class="selI" style="flex:2" onchange="calcularSugerido()">${opciones}</select>
                 <input type="number" class="cantI" value="${cant}" placeholder="Cant" style="flex:1" onkeyup="calcularSugerido()">
                 <select class="tipoU" style="flex:1" onchange="calcularSugerido()"><option value="gr" ${tipo=='gr'?'selected':''}>gr/ml</option><option value="un" ${tipo=='un'?'selected':''}>un</option></select>
-                <button onclick="this.parentElement.remove(); calcularSugerido();" style="width:auto; background:none; color:red; padding:0 5px; border:none;">✕</button>
+                <button onclick="this.parentElement.remove(); calcularSugerido();" style="width:auto; background:none; color:red; border:none;">✕</button>
             </div>`);
     }
 
@@ -237,7 +265,8 @@
         const sels = document.querySelectorAll('.selI');
         const cants = document.querySelectorAll('.cantI');
         const tipos = document.querySelectorAll('.tipoU');
-        const perc = (document.getElementById('porcentajeObjetivo').value || 35) / 100;
+        const vtaInput = document.getElementById('platoVenta');
+        const percObj = (document.getElementById('porcentajeObjetivo').value || 35) / 100;
 
         sels.forEach((s, i) => {
             const insumo = baseInsumos.find(b => b[0] === s.value);
@@ -249,9 +278,18 @@
 
         if(costoTotal > 0) {
             document.getElementById('areaSugerido').style.display = 'block';
-            const sugerido = Math.round(costoTotal / perc);
+            const sugerido = Math.round(costoTotal / percObj);
             document.getElementById('precioSugeridoTxt').innerText = `$${sugerido.toLocaleString()}`;
-            document.getElementById('platoVenta').value = sugerido;
+            
+            // Stats en tiempo real
+            const vtaReal = parseFloat(vtaInput.value) || 0;
+            const fcReal = vtaReal > 0 ? (costoTotal / vtaReal) * 100 : 0;
+            const utilidad = vtaReal - costoTotal;
+
+            document.getElementById('statCosto').innerText = `$${Math.round(costoTotal).toLocaleString()}`;
+            document.getElementById('statPerc').innerText = `${Math.round(fcReal)}%`;
+            document.getElementById('statPerc').style.color = fcReal > (percObj*100) ? 'red' : 'green';
+            document.getElementById('statMargen').innerText = `$${Math.round(utilidad).toLocaleString()}`;
         }
     }
 
@@ -276,23 +314,17 @@
         sels.forEach((s, i) => { if(cants[i].value) lista.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value }); });
         
         if(!nom || !venta || lista.length === 0) return alert("Faltan datos");
-
         document.getElementById('loading').style.display = 'block';
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ nombre: nom, tipoPlato: tipo, precioVenta: venta, ingredientes: lista, esReceta: true }) });
         setTimeout(() => location.reload(), 1500);
     }
 
     function renderizar() {
-        // Inventario Pro
+        // Insumos
         document.getElementById('tablaInsumos').innerHTML = baseInsumos.map((i, idx) => `
-            <tr>
-                <td><strong>${i[0]}</strong><br><small>Merma: ${i[3]}%</small></td>
-                <td>$${Number(i[2]).toLocaleString()}</td>
-                <td>
-                    <button class="btn-edit" onclick="editarInsumo(${idx})">E</button>
-                    <button class="btn-del" onclick="eliminarItem('insumo', ${idx})">X</button>
-                </td>
-            </tr>`).join('');
+            <tr><td><strong>${i[0]}</strong></td><td>$${Number(i[2]).toLocaleString()}</td>
+            <td><button class="btn-edit" onclick="editarInsumo(${idx})">E</button>
+            <button class="btn-del" onclick="eliminarItem('insumo', ${idx})">X</button></td></tr>`).join('');
 
         // Consolidado
         const cont = document.getElementById('contenedorCartas');
@@ -306,51 +338,39 @@
             let catHtml = `<div class="card"><h3>${cat}</h3>`;
             platos.forEach((r) => {
                 let costoTotal = 0;
-                let ingHtml = '';
                 try {
                     JSON.parse(r[1]).forEach(ing => {
                         const v = baseInsumos.find(b => b[0] === ing.nombreInsumo);
                         if(v) {
                             const pReal = v[2] / (1 - (v[3]/100));
-                            let sub = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
-                            costoTotal += sub;
-                            ingHtml += `<div>• ${ing.nombreInsumo}: ${ing.cantidad}${ing.tipo} ($${Math.round(sub).toLocaleString()})</div>`;
+                            costoTotal += (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
                         }
                     });
                 } catch(e){}
 
                 const venta = r[4] || 0;
-                const utilidad = venta - costoTotal;
                 const fc = venta > 0 ? (costoTotal / venta) * 100 : 0;
-                let colorS = (fc <= 30 && fc > 0) ? '#27ae60' : (fc <= 40) ? '#f1c40f' : '#e74c3c';
-
+                const colorS = fc <= 35 ? '#27ae60' : fc <= 42 ? '#f1c40f' : '#e74c3c';
                 const idxReal = baseRecetas.findIndex(br => br[0] === r[0] && br[3] === r[3]);
 
                 catHtml += `
                     <div class="semaforo-card" style="border-left-color: ${colorS}">
-                        <div style="display:flex; justify-content:space-between; align-items:start;">
-                            <div style="flex:2">
-                                <strong style="font-size:1.1rem">${r[0]}</strong> 
-                                <div style="margin:5px 0">
-                                    <span style="color:var(--primary); font-weight:bold;">Venta: $${Number(venta).toLocaleString()}</span> | 
-                                    <small>Costo: $${Math.round(costoTotal).toLocaleString()}</small>
-                                </div>
+                        <div style="display:flex; justify-content:space-between;">
+                            <div>
+                                <strong>${r[0]}</strong><br>
                                 <span class="badge-fc" style="background:${colorS}">FC: ${Math.round(fc)}%</span>
-                                <div style="font-weight:bold; color:var(--success); margin-top:5px">Utilidad: $${Math.round(utilidad).toLocaleString()}</div>
-                                <div class="detalle-box">${ingHtml}</div>
+                                <small>$${Number(venta).toLocaleString()}</small>
                             </div>
-                            <div style="flex:1; text-align:right;">
-                                <button class="btn-edit" onclick="editarReceta(${idxReal})">EDITAR</button>
-                                <button class="btn-del" onclick="eliminarItem('receta', ${idxReal})">BORRAR</button>
+                            <div>
+                                <button class="btn-edit" onclick="editarReceta(${idxReal})">E</button>
+                                <button class="btn-del" onclick="eliminarItem('receta', ${idxReal})">X</button>
                             </div>
                         </div>
                     </div>`;
-                
-                analytics.push({ nombre: r[0], costo: Math.round(costoTotal), venta: Number(venta), utilidad: Math.round(utilidad), color: COLORES_CAT[cat] });
+                analytics.push({ nombre: r[0], costo: Math.round(costoTotal), venta: Number(venta), utilidad: venta - costoTotal, color: COLORES_CAT[cat] });
             });
             cont.insertAdjacentHTML('beforeend', catHtml + `</div>`);
         });
-
         dibujarGraficos(analytics);
     }
 
@@ -365,7 +385,7 @@
         const minU = Math.min(...utilidades);
         const coloresRent = utilidades.map(u => {
             const ratio = (maxU === minU) ? 1 : (u - minU) / (maxU - minU);
-            return `rgba(20, ${100 + (120 * ratio)}, 20, 0.6)`;
+            return `rgba(20, ${100 + (120 * ratio)}, 20, 0.7)`;
         });
         updateChart('chartMargen', labels, utilidades, coloresRent, 'Utilidad ($)');
     }
@@ -388,6 +408,7 @@
         document.getElementById('listaIngredientes').innerHTML = '';
         JSON.parse(r[1]).forEach(ing => nuevaFila(ing.nombreInsumo, ing.cantidad, ing.tipo));
         cambiarTab('recetas');
+        calcularSugerido();
         window.scrollTo(0,0);
     }
 
@@ -402,7 +423,7 @@
     }
 
     async function eliminarItem(tipo, index) {
-        if(!confirm("¿Confirmas eliminar este registro?")) return;
+        if(!confirm("¿Eliminar?")) return;
         const sheet = (tipo === 'insumo') ? "Insumos" : "Recetas";
         document.getElementById('loading').style.display = 'block';
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) });
