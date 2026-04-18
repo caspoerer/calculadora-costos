@@ -44,15 +44,14 @@
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
 
-        .btn-edit { background: var(--info); width: auto; padding: 6px 12px; font-size: 11px; margin-right: 5px; }
-        .btn-del { background: var(--accent); width: auto; padding: 6px 12px; font-size: 11px; }
+        .btn-edit { background: var(--info); width: auto; padding: 8px 15px; font-size: 10px; margin-right: 5px; letter-spacing: 1px; }
+        .btn-del { background: var(--accent); width: auto; padding: 8px 15px; font-size: 10px; letter-spacing: 1px; }
 
         .semaforo-card { padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #ccc; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .detalle-box { background: #fefae0; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; border-left: 3px solid var(--secondary); }
+        .detalle-box { background: #fefae0; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; border-left: 3px solid var(--secondary); line-height: 1.4; }
         
         .badge-fc { font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; color: white; font-weight: bold; display: inline-block; margin: 5px 0; }
         
-        /* NUEVO: ÁREA DE COSTOS EN RECETAS */
         #areaSugerido { background: #e1f5fe; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--info); }
         .stats-receta { display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .stat-box { flex: 1; text-align: center; }
@@ -67,7 +66,7 @@
     <div id="login-overlay">
         <div class="login-card">
             <h2>La Pasarela</h2>
-            <p style="font-size: 0.8rem; color: #666; margin-bottom: 20px;">Administración de Costos</p>
+            <p style="font-size: 0.8rem; color: #666; margin-bottom: 20px;">Panel Administrativo</p>
             <input type="text" id="userInput" placeholder="Usuario">
             <input type="password" id="passInput" placeholder="Contraseña">
             <button onclick="validarAcceso()" style="background: var(--secondary);">ENTRAR</button>
@@ -81,15 +80,15 @@
             <button class="tab-btn" onclick="cambiarTab('inventario')">Inventario Pro</button>
             <button class="tab-btn" onclick="cambiarTab('recetas')">Crear Receta</button>
             <button class="tab-btn" onclick="cambiarTab('resumen')">Consolidado</button>
-            <button onclick="cerrarSesion()" style="width:auto; background:none; color:var(--accent); font-size:0.7rem; border:none; padding:0 10px;">SALIR</button>
+            <button onclick="cerrarSesion()" style="width:auto; background:none; color:var(--accent); font-size:0.7rem; border:none; padding:0 10px;">CERRAR SESIÓN</button>
         </div>
 
-        <div id="loading" class="loader" style="display:none;">⏳ Sincronizando datos...</div>
+        <div id="loading" class="loader" style="display:none;">⏳ Actualizando datos...</div>
 
         <div id="registro" class="tab-content active">
             <div class="card">
                 <h2>Configurar Insumo</h2>
-                <input type="text" id="ingNom" placeholder="Nombre (ej: Filete)">
+                <input type="text" id="ingNom" placeholder="Nombre Insumo">
                 <input type="number" id="ingPre" placeholder="Precio Compra ($)">
                 <input type="number" id="ingMerma" value="0" placeholder="% Merma">
                 <select id="ingUniCompra">
@@ -103,7 +102,7 @@
         <div id="inventario" class="tab-content">
             <div class="card">
                 <h2>Inventario</h2>
-                <input type="text" id="searchInsumo" placeholder="🔍 Buscar..." onkeyup="filtrarInsumos()">
+                <input type="text" id="searchInsumo" placeholder="🔍 Buscar ingrediente..." onkeyup="filtrarInsumos()">
                 <div style="max-height: 500px; overflow-y: auto;">
                     <table>
                         <thead><tr><th>Insumo</th><th>Precio</th><th>Acciones</th></tr></thead>
@@ -115,7 +114,7 @@
 
         <div id="recetas" class="tab-content">
             <div class="card">
-                <h2>Nueva Receta</h2>
+                <h2>Diseño de Receta</h2>
                 <input type="text" id="platoNom" placeholder="Nombre del Plato">
                 <select id="platoTipo">
                     <option>Entrada</option>
@@ -142,18 +141,9 @@
                     </div>
                     
                     <div class="stats-receta">
-                        <div class="stat-box">
-                            <small>Costo Total</small>
-                            <span id="statCosto">$0</span>
-                        </div>
-                        <div class="stat-box">
-                            <small>% Costo Real</small>
-                            <span id="statPerc">0%</span>
-                        </div>
-                        <div class="stat-box">
-                            <small>Margen $</small>
-                            <span id="statMargen">$0</span>
-                        </div>
+                        <div class="stat-box"><small>Costo Total</small><span id="statCosto">$0</span></div>
+                        <div class="stat-box"><small>% Costo Real</small><span id="statPerc">0%</span></div>
+                        <div class="stat-box"><small>Margen $</small><span id="statMargen">$0</span></div>
                     </div>
                 </div>
                 
@@ -185,11 +175,9 @@
         "Ensalada": "#caffbf", "Postre": "#9bf6ff", "Bebestible con Alcohol": "#a0c4ff", "Bebestible sin Alcohol": "#bdb2ff"
     };
 
-    // --- SESIÓN Y LOGIN ---
+    // --- SESIÓN ---
     window.onload = () => {
-        if(sessionStorage.getItem('sesionLaPasarela') === 'activa') {
-            mostrarApp();
-        }
+        if(sessionStorage.getItem('sesionLaPasarela') === 'activa') { mostrarApp(); }
         resetTimer();
     };
 
@@ -198,9 +186,7 @@
            document.getElementById('passInput').value === CREDENCIALES.clave) {
             sessionStorage.setItem('sesionLaPasarela', 'activa');
             mostrarApp();
-        } else {
-            document.getElementById('errorLogin').style.display = 'block';
-        }
+        } else { document.getElementById('errorLogin').style.display = 'block'; }
     }
 
     function mostrarApp() {
@@ -209,26 +195,18 @@
         cargarTodo();
     }
 
-    function cerrarSesion() {
-        sessionStorage.removeItem('sesionLaPasarela');
-        location.reload();
-    }
+    function cerrarSesion() { sessionStorage.removeItem('sesionLaPasarela'); location.reload(); }
 
-    // Timer de inactividad (10 min)
     function resetTimer() {
         clearTimeout(inactividadTimer);
         inactividadTimer = setTimeout(() => {
-            if(sessionStorage.getItem('sesionLaPasarela')) {
-                alert("Sesión cerrada por inactividad");
-                cerrarSesion();
-            }
+            if(sessionStorage.getItem('sesionLaPasarela')) { cerrarSesion(); }
         }, 10 * 60 * 1000); 
     }
-
     document.onmousemove = resetTimer;
     document.onkeypress = resetTimer;
 
-    // --- LÓGICA DE NEGOCIO ---
+    // --- DATOS ---
     async function cargarTodo() {
         document.getElementById('loading').style.display = 'block';
         try {
@@ -262,10 +240,7 @@
 
     function calcularSugerido() {
         let costoTotal = 0;
-        const sels = document.querySelectorAll('.selI');
-        const cants = document.querySelectorAll('.cantI');
-        const tipos = document.querySelectorAll('.tipoU');
-        const vtaInput = document.getElementById('platoVenta');
+        const sels = document.querySelectorAll('.selI'), cants = document.querySelectorAll('.cantI'), tipos = document.querySelectorAll('.tipoU');
         const percObj = (document.getElementById('porcentajeObjetivo').value || 35) / 100;
 
         sels.forEach((s, i) => {
@@ -280,25 +255,17 @@
             document.getElementById('areaSugerido').style.display = 'block';
             const sugerido = Math.round(costoTotal / percObj);
             document.getElementById('precioSugeridoTxt').innerText = `$${sugerido.toLocaleString()}`;
-            
-            // Stats en tiempo real
-            const vtaReal = parseFloat(vtaInput.value) || 0;
+            const vtaReal = parseFloat(document.getElementById('platoVenta').value) || 0;
             const fcReal = vtaReal > 0 ? (costoTotal / vtaReal) * 100 : 0;
-            const utilidad = vtaReal - costoTotal;
-
             document.getElementById('statCosto').innerText = `$${Math.round(costoTotal).toLocaleString()}`;
             document.getElementById('statPerc').innerText = `${Math.round(fcReal)}%`;
             document.getElementById('statPerc').style.color = fcReal > (percObj*100) ? 'red' : 'green';
-            document.getElementById('statMargen').innerText = `$${Math.round(utilidad).toLocaleString()}`;
+            document.getElementById('statMargen').innerText = `$${Math.round(vtaReal - costoTotal).toLocaleString()}`;
         }
     }
 
     async function enviarInsumo() {
-        const d = {
-            nom: document.getElementById('ingNom').value, cat: "General",
-            pre: document.getElementById('ingPre').value, mer: document.getElementById('ingMerma').value,
-            uni: document.getElementById('ingUniCompra').value, esReceta: false
-        };
+        const d = { nom: document.getElementById('ingNom').value, pre: document.getElementById('ingPre').value, mer: document.getElementById('ingMerma').value, uni: document.getElementById('ingUniCompra').value, esReceta: false };
         if(!d.nom || !d.pre) return alert("Faltan datos");
         document.getElementById('loading').style.display = 'block';
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify(d) });
@@ -306,13 +273,10 @@
     }
 
     async function guardarReceta() {
-        const nom = document.getElementById('platoNom').value;
-        const venta = document.getElementById('platoVenta').value;
-        const tipo = document.getElementById('platoTipo').value;
+        const nom = document.getElementById('platoNom').value, venta = document.getElementById('platoVenta').value, tipo = document.getElementById('platoTipo').value;
         const sels = document.querySelectorAll('.selI'), cants = document.querySelectorAll('.cantI'), tipos = document.querySelectorAll('.tipoU');
         let lista = [];
         sels.forEach((s, i) => { if(cants[i].value) lista.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value }); });
-        
         if(!nom || !venta || lista.length === 0) return alert("Faltan datos");
         document.getElementById('loading').style.display = 'block';
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ nombre: nom, tipoPlato: tipo, precioVenta: venta, ingredientes: lista, esReceta: true }) });
@@ -320,11 +284,11 @@
     }
 
     function renderizar() {
-        // Insumos
+        // Inventario
         document.getElementById('tablaInsumos').innerHTML = baseInsumos.map((i, idx) => `
             <tr><td><strong>${i[0]}</strong></td><td>$${Number(i[2]).toLocaleString()}</td>
-            <td><button class="btn-edit" onclick="editarInsumo(${idx})">E</button>
-            <button class="btn-del" onclick="eliminarItem('insumo', ${idx})">X</button></td></tr>`).join('');
+            <td><button class="btn-edit" onclick="editarInsumo(${idx})">EDITAR</button>
+            <button class="btn-del" onclick="eliminarItem('insumo', ${idx})">ELIMINAR</button></td></tr>`).join('');
 
         // Consolidado
         const cont = document.getElementById('contenedorCartas');
@@ -338,32 +302,39 @@
             let catHtml = `<div class="card"><h3>${cat}</h3>`;
             platos.forEach((r) => {
                 let costoTotal = 0;
+                let ingHtml = '';
                 try {
                     JSON.parse(r[1]).forEach(ing => {
                         const v = baseInsumos.find(b => b[0] === ing.nombreInsumo);
                         if(v) {
                             const pReal = v[2] / (1 - (v[3]/100));
-                            costoTotal += (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
+                            let sub = (ing.tipo === 'gr') ? (pReal/1000)*ing.cantidad : pReal*ing.cantidad;
+                            costoTotal += sub;
+                            ingHtml += `<div>• ${ing.nombreInsumo}: ${ing.cantidad}${ing.tipo} ($${Math.round(sub).toLocaleString()})</div>`;
                         }
                     });
                 } catch(e){}
 
                 const venta = r[4] || 0;
                 const fc = venta > 0 ? (costoTotal / venta) * 100 : 0;
-                const colorS = fc <= 35 ? '#27ae60' : fc <= 42 ? '#f1c40f' : '#e74c3c';
+                const colorS = fc <= 30 ? '#27ae60' : fc <= 40 ? '#f1c40f' : '#e74c3c';
                 const idxReal = baseRecetas.findIndex(br => br[0] === r[0] && br[3] === r[3]);
 
                 catHtml += `
                     <div class="semaforo-card" style="border-left-color: ${colorS}">
-                        <div style="display:flex; justify-content:space-between;">
-                            <div>
-                                <strong>${r[0]}</strong><br>
-                                <span class="badge-fc" style="background:${colorS}">FC: ${Math.round(fc)}%</span>
-                                <small>$${Number(venta).toLocaleString()}</small>
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start;">
+                            <div style="flex:2">
+                                <strong style="font-size:1.1rem">${r[0]}</strong><br>
+                                <span class="badge-fc" style="background:${colorS}">FOOD COST: ${Math.round(fc)}%</span>
+                                <div style="margin:5px 0">
+                                    <span style="font-weight:bold; color:var(--primary)">Venta: $${Number(venta).toLocaleString()}</span> | 
+                                    <small>Utilidad: $${Math.round(venta - costoTotal).toLocaleString()}</small>
+                                </div>
+                                <div class="detalle-box">${ingHtml}</div>
                             </div>
-                            <div>
-                                <button class="btn-edit" onclick="editarReceta(${idxReal})">E</button>
-                                <button class="btn-del" onclick="eliminarItem('receta', ${idxReal})">X</button>
+                            <div style="flex:1; text-align:right; display:flex; flex-direction:column; gap:5px;">
+                                <button class="btn-edit" onclick="editarReceta(${idxReal})">EDITAR</button>
+                                <button class="btn-del" onclick="eliminarItem('receta', ${idxReal})">ELIMINAR</button>
                             </div>
                         </div>
                     </div>`;
@@ -379,10 +350,8 @@
         const labels = datos.map(d => d.nombre);
         updateChart('chartCostos', labels, datos.map(d => d.costo), datos.map(d => d.color), 'Costos ($)');
         updateChart('chartVentas', labels, datos.map(d => d.venta), datos.map(d => d.color), 'Ventas ($)');
-        
         const utilidades = datos.map(d => d.utilidad);
-        const maxU = Math.max(...utilidades);
-        const minU = Math.min(...utilidades);
+        const maxU = Math.max(...utilidades), minU = Math.min(...utilidades);
         const coloresRent = utilidades.map(u => {
             const ratio = (maxU === minU) ? 1 : (u - minU) / (maxU - minU);
             return `rgba(20, ${100 + (120 * ratio)}, 20, 0.7)`;
@@ -393,11 +362,7 @@
     function updateChart(id, labels, data, colors, title) {
         const ctx = document.getElementById(id).getContext('2d');
         if(charts[id]) charts[id].destroy();
-        charts[id] = new Chart(ctx, {
-            type: 'bar',
-            data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: colors }] },
-            options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
-        });
+        charts[id] = new Chart(ctx, { type: 'bar', data: { labels: labels, datasets: [{ label: title, data: data, backgroundColor: colors }] }, options: { indexAxis: 'y', responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } } });
     }
 
     function editarReceta(idx) {
@@ -423,7 +388,7 @@
     }
 
     async function eliminarItem(tipo, index) {
-        if(!confirm("¿Eliminar?")) return;
+        if(!confirm("¿Deseas eliminar este registro permanentemente?")) return;
         const sheet = (tipo === 'insumo') ? "Insumos" : "Recetas";
         document.getElementById('loading').style.display = 'block';
         await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) });
