@@ -11,55 +11,34 @@
             --accent: #e74c3c; --success: #27ae60; --info: #3498db;
         }
         body { font-family: -apple-system, sans-serif; background: var(--bg); margin: 0; padding: 0; color: var(--text); }
-        
-        /* LOGIN */
-        #login-overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000;
-        }
-        .login-card {
-            background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2);
-            width: 90%; max-width: 350px; text-align: center;
-        }
-        
-        /* APP PRINCIPAL */
+        #login-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: var(--primary); display: flex; align-items: center; justify-content: center; z-index: 1000; }
+        .login-card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); width: 90%; max-width: 350px; text-align: center; }
         #main-app { display: none; padding: 10px; padding-bottom: 60px; }
-
         .tabs { display: flex; gap: 5px; margin-bottom: 15px; position: sticky; top: 0; background: var(--bg); z-index: 10; padding: 5px 0; overflow-x: auto; }
         .tab-btn { padding: 8px 12px; border: none; background: #ddd; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 0.7rem; white-space: nowrap; }
         .tab-btn.active { background: var(--primary); color: white; }
-        
         .tab-content { display: none; }
         .tab-content.active { display: block; }
-        
         .card { background: white; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 15px; }
         h2, h3 { color: var(--primary); margin-top: 0; }
-        
         input, select, button { width: 100%; padding: 10px; margin: 5px 0; border-radius: 6px; border: 1px solid #ddd; box-sizing: border-box; font-size: 14px; }
         button { background: var(--primary); color: white; border: none; font-weight: bold; cursor: pointer; transition: 0.2s; }
         button:active { transform: scale(0.98); }
-        
         .grid-charts { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 15px; margin-bottom: 20px; }
         .chart-container { background: white; padding: 10px; border-radius: 12px; height: 300px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); }
-
         table { width: 100%; border-collapse: collapse; font-size: 0.8rem; margin-top: 10px; }
         th, td { border: 1px solid #eee; padding: 10px; text-align: left; }
-
         .btn-edit { background: var(--info); width: auto; padding: 4px 10px; font-size: 10px; margin-right: 5px; display: inline-block; }
         .btn-del { background: var(--accent); width: auto; padding: 4px 10px; font-size: 10px; display: inline-block; }
-
         .semaforo-card { padding: 15px; border-radius: 8px; margin-bottom: 15px; border-left: 10px solid #ccc; background: #fff; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .detalle-box { background: #fefae0; padding: 10px; border-radius: 8px; margin-top: 10px; font-size: 0.75rem; border-left: 3px solid var(--secondary); line-height: 1.4; }
-        
         .badge-fc { font-size: 0.7rem; padding: 3px 8px; border-radius: 4px; color: white; font-weight: bold; display: inline-block; margin: 5px 0; }
         .badge-aditivo { background: #9b59b6 !important; }
-        
         #areaSugerido { background: #e1f5fe; padding: 15px; border-radius: 8px; margin: 10px 0; border: 1px solid var(--info); }
         .stats-receta { display: flex; gap: 10px; margin-top: 10px; border-top: 1px solid #eee; padding-top: 10px; }
         .stat-box { flex: 1; text-align: center; }
         .stat-box small { display: block; font-size: 0.65rem; color: #666; text-transform: uppercase; }
         .stat-box span { font-weight: bold; font-size: 1.1rem; }
-
         .loader { text-align: center; padding: 20px; font-weight: bold; color: var(--secondary); border: 2px solid; border-radius: 10px; margin: 10px; }
     </style>
 </head>
@@ -118,7 +97,7 @@
             <div class="card">
                 <h2>Nueva Preparación</h2>
                 <input type="text" id="platoNom" placeholder="Nombre del Plato o Aditivo">
-                <select id="platoTipo">
+                <select id="platoTipo" onchange="toggleUnidadAditivo()">
                     <option value="Aditivo">★ Aditivo (Se sumará al inventario)</option>
                     <option>Entrada</option>
                     <option>Hamburguesa/Sandwich</option>
@@ -128,6 +107,15 @@
                     <option>Bebestible con Alcohol</option>
                     <option>Bebestible sin Alcohol</option>
                 </select>
+
+                <div id="opcionUnidadAditivo">
+                    <small><strong>¿Cómo se mide este Aditivo al final?</strong></small>
+                    <select id="unidadResultadoAditivo">
+                        <option value="un">Por Unidad (ej: 1 hamburguesa)</option>
+                        <option value="gr">Por Peso/Volumen (ej: 1 gr/ml de salsa)</option>
+                    </select>
+                </div>
+
                 <div id="listaIngredientes"></div>
                 <button onclick="nuevaFila()" style="background:var(--secondary)">+ AÑADIR INGREDIENTE / ADITIVO</button>
                 
@@ -145,12 +133,12 @@
                     
                     <div class="stats-receta">
                         <div class="stat-box"><small>Costo Producción</small><span id="statCosto">$0</span></div>
-                        <div id="boxPerc" class="stat-box"><small>% Costo Real</small><span id="statPerc">0%</span></div>
-                        <div id="boxMargen" class="stat-box"><small>Margen $</small><span id="statMargen">$0</span></div>
+                        <div class="stat-box"><small>% Costo Real</small><span id="statPerc">0%</span></div>
+                        <div class="stat-box"><small>Margen $</small><span id="statMargen">$0</span></div>
                     </div>
                 </div>
                 
-                <input type="number" id="platoVenta" placeholder="Precio Venta Final ($) - Ignorar si es Aditivo" onkeyup="calcularSugerido()">
+                <input type="number" id="platoVenta" placeholder="Precio Venta Final ($)" onkeyup="calcularSugerido()">
                 <button onclick="guardarReceta()" style="background:var(--success); margin-top:10px;">GUARDAR PREPARACIÓN</button>
             </div>
         </div>
@@ -167,7 +155,7 @@
 
 <script>
     const CREDENCIALES = { usuario: "admin", clave: "puelo2026" };
-    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbwHAocTMpcCx-wTeGXZuq8CZecF2gX7FQ-hgILgPe90WQjcfnJhOsiF1yYP0nayU1i9_w/exec"; 
+    const URL_GOOGLE = "https://script.google.com/macros/s/AKfycbxheQRFLhdRMmSecylIo1QSVIxU7T63dBWAFT_T679jdeQPF-0cLTmbQJzOVD1cA0hGhw/exec"; 
     let baseInsumos = [];
     let baseRecetas = [];
     let charts = {};
@@ -182,7 +170,13 @@
     window.onload = () => {
         if(sessionStorage.getItem('sesionLaPasarela') === 'activa') { mostrarApp(); }
         resetTimer();
+        toggleUnidadAditivo();
     };
+
+    function toggleUnidadAditivo() {
+        const tipo = document.getElementById('platoTipo').value;
+        document.getElementById('opcionUnidadAditivo').style.display = (tipo === 'Aditivo') ? 'block' : 'none';
+    }
 
     function validarAcceso() {
         if(document.getElementById('userInput').value === CREDENCIALES.usuario && 
@@ -202,12 +196,9 @@
 
     function resetTimer() {
         clearTimeout(inactividadTimer);
-        inactividadTimer = setTimeout(() => {
-            if(sessionStorage.getItem('sesionLaPasarela')) { cerrarSesion(); }
-        }, 10 * 60 * 1000); 
+        inactividadTimer = setTimeout(() => { if(sessionStorage.getItem('sesionLaPasarela')) cerrarSesion(); }, 10 * 60 * 1000); 
     }
-    document.onmousemove = resetTimer;
-    document.onkeypress = resetTimer;
+    document.onmousemove = resetTimer; document.onkeypress = resetTimer;
 
     async function cargarTodo() {
         document.getElementById('loading').style.display = 'block';
@@ -217,7 +208,6 @@
             baseInsumos = data.insumos;
             baseRecetas = data.recetas;
 
-            // Lógica de Aditivos: Convertir recetas tipo "Aditivo" en insumos seleccionables
             baseRecetas.filter(r => r[2] === "Aditivo").forEach(ad => {
                 let costoAditivo = 0;
                 try {
@@ -229,9 +219,8 @@
                         }
                     });
                 } catch(e){}
-                // Agregamos a la lista de insumos disponibles para selección
                 if(!baseInsumos.find(i => i[0] === ad[0])) {
-                    baseInsumos.push([ad[0], "Aditivo", costoAditivo, 0, "un"]);
+                    baseInsumos.push([ad[0], "Aditivo", costoAditivo, 0, ad[5] || "un"]);
                 }
             });
 
@@ -244,13 +233,11 @@
         document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
         document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
         document.getElementById(id).classList.add('active');
-        if(event) event.currentTarget.classList.add('active');
     }
 
     function nuevaFila(nombre = '', cant = '', tipo = 'gr') {
         const cont = document.getElementById('listaIngredientes');
-        // El select ahora incluye Insumos Base + Aditivos creados previamente
-        const opciones = baseInsumos.map(i => `<option value="${i[0]}" ${i[0]==nombre?'selected':''}>${i[0]} (${i[1] === "Aditivo" ? '★' : ''})</option>`).join('');
+        const opciones = baseInsumos.map(i => `<option value="${i[0]}" ${i[0]==nombre?'selected':''}>${i[0]} ${i[1] === "Aditivo" ? '★' : ''}</option>`).join('');
         cont.insertAdjacentHTML('beforeend', `
             <div class="fila-receta" style="display:flex; gap:5px; margin-bottom:5px;">
                 <select class="selI" style="flex:2" onchange="calcularSugerido()">${opciones}</select>
@@ -264,7 +251,6 @@
         let costoTotal = 0;
         const sels = document.querySelectorAll('.selI'), cants = document.querySelectorAll('.cantI'), tipos = document.querySelectorAll('.tipoU');
         const percObj = (document.getElementById('porcentajeObjetivo').value || 35) / 100;
-        const esAditivo = document.getElementById('platoTipo').value === "Aditivo";
 
         sels.forEach((s, i) => {
             const insumo = baseInsumos.find(b => b[0] === s.value);
@@ -277,22 +263,13 @@
         if(costoTotal > 0) {
             document.getElementById('areaSugerido').style.display = 'block';
             document.getElementById('statCosto').innerText = `$${Math.round(costoTotal).toLocaleString()}`;
-            
-            if(esAditivo) {
-                document.getElementById('precioSugeridoTxt').innerText = "N/A (Aditivo)";
-                document.getElementById('boxPerc').style.display = 'none';
-                document.getElementById('boxMargen').style.display = 'none';
-            } else {
-                document.getElementById('boxPerc').style.display = 'block';
-                document.getElementById('boxMargen').style.display = 'block';
-                const sugerido = Math.round(costoTotal / percObj);
-                document.getElementById('precioSugeridoTxt').innerText = `$${sugerido.toLocaleString()}`;
-                const vtaReal = parseFloat(document.getElementById('platoVenta').value) || 0;
-                const fcReal = vtaReal > 0 ? (costoTotal / vtaReal) * 100 : 0;
-                document.getElementById('statPerc').innerText = `${Math.round(fcReal)}%`;
-                document.getElementById('statPerc').style.color = fcReal > (percObj*100) ? 'red' : 'green';
-                document.getElementById('statMargen').innerText = `$${Math.round(vtaReal - costoTotal).toLocaleString()}`;
-            }
+            const sugerido = Math.round(costoTotal / percObj);
+            document.getElementById('precioSugeridoTxt').innerText = `$${sugerido.toLocaleString()}`;
+            const vtaReal = parseFloat(document.getElementById('platoVenta').value) || 0;
+            const fcReal = vtaReal > 0 ? (costoTotal / vtaReal) * 100 : 0;
+            document.getElementById('statPerc').innerText = `${Math.round(fcReal)}%`;
+            document.getElementById('statPerc').style.color = fcReal > (percObj*100) ? 'red' : 'green';
+            document.getElementById('statMargen').innerText = `$${Math.round(vtaReal - costoTotal).toLocaleString()}`;
         }
     }
 
@@ -300,13 +277,13 @@
         const nom = document.getElementById('platoNom').value;
         const venta = document.getElementById('platoVenta').value || 0;
         const tipo = document.getElementById('platoTipo').value;
+        const unidadRes = document.getElementById('unidadResultadoAditivo').value;
         const sels = document.querySelectorAll('.selI'), cants = document.querySelectorAll('.cantI'), tipos = document.querySelectorAll('.tipoU');
         let lista = [];
         sels.forEach((s, i) => { if(cants[i].value) lista.push({ nombreInsumo: s.value, cantidad: cants[i].value, tipo: tipos[i].value }); });
-        
         if(!nom || lista.length === 0) return alert("Faltan datos");
         document.getElementById('loading').style.display = 'block';
-        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ nombre: nom, tipoPlato: tipo, precioVenta: venta, ingredientes: lista, esReceta: true }) });
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ nombre: nom, tipoPlato: tipo, precioVenta: venta, ingredientes: lista, esReceta: true, unidadResultado: unidadRes }) });
         setTimeout(() => location.reload(), 1500);
     }
 
@@ -319,12 +296,11 @@
     }
 
     function renderizar() {
-        // Tabla Inventario con distinción de Aditivos
         document.getElementById('tablaInsumos').innerHTML = baseInsumos.map((i, idx) => `
             <tr style="${i[1] === 'Aditivo' ? 'background:#f9f0ff' : ''}">
-                <td><strong>${i[0]}</strong> ${i[1] === 'Aditivo' ? '<span style="color:#9b59b6; font-size:10px">★</span>' : ''}</td>
+                <td><strong>${i[0]}</strong> ${i[1] === 'Aditivo' ? '★' : ''}</td>
                 <td>$${Number(i[2]).toLocaleString()}</td>
-                <td><small>${i[1] === 'Aditivo' ? 'ADITIVO' : 'BASE'}</small></td>
+                <td><small>${i[1] === 'Aditivo' ? 'ADITIVO ('+i[4]+')' : 'BASE'}</small></td>
                 <td>
                     ${i[1] !== 'Aditivo' ? `<button class="btn-edit" onclick="editarInsumo(${idx})">EDITAR</button>` : ''}
                     <button class="btn-del" onclick="eliminarItem('${i[1] === 'Aditivo' ? 'receta' : 'insumo'}', ${idx})">ELIMINAR</button>
@@ -338,11 +314,9 @@
         Object.keys(COLORES_CAT).forEach(cat => {
             const platos = baseRecetas.filter(r => r[2] === cat);
             if(platos.length === 0) return;
-
             let catHtml = `<div class="card"><h3>${cat}</h3>`;
             platos.forEach((r) => {
-                let costoTotal = 0;
-                let ingHtml = '';
+                let costoTotal = 0; let ingHtml = '';
                 try {
                     JSON.parse(r[1]).forEach(ing => {
                         const v = baseInsumos.find(b => b[0] === ing.nombreInsumo);
@@ -354,7 +328,6 @@
                         }
                     });
                 } catch(e){}
-
                 const venta = r[4] || 0;
                 const fc = venta > 0 ? (costoTotal / venta) * 100 : 0;
                 const esAd = cat === "Aditivo";
@@ -366,10 +339,10 @@
                         <div style="display:flex; justify-content:space-between; align-items:flex-start;">
                             <div style="flex:2">
                                 <strong style="font-size:1.1rem">${r[0]}</strong><br>
-                                ${!esAd ? `<span class="badge-fc" style="background:${colorS}">FOOD COST: ${Math.round(fc)}%</span>` : '<span class="badge-fc badge-aditivo">COMPUESTO (ADITIVO)</span>'}
+                                <span class="badge-fc" style="background:${colorS}">${esAd ? 'ADITIVO' : 'FOOD COST: '+Math.round(fc)+'%'}</span>
                                 <div style="margin:5px 0">
-                                    <span style="font-weight:bold; color:var(--primary)">Costo Prep: $${Math.round(costoTotal).toLocaleString()}</span> 
-                                    ${!esAd ? ` | <small>Venta: $${Number(venta).toLocaleString()}</small>` : ''}
+                                    <span style="font-weight:bold; color:var(--primary)">Costo: $${Math.round(costoTotal).toLocaleString()}</span> | 
+                                    <small>Venta: $${Number(venta).toLocaleString()}</small>
                                 </div>
                                 <div class="detalle-box">${ingHtml}</div>
                             </div>
@@ -379,7 +352,7 @@
                             </div>
                         </div>
                     </div>`;
-                if(!esAd) analytics.push({ nombre: r[0], costo: Math.round(costoTotal), venta: Number(venta), utilidad: venta - costoTotal, color: COLORES_CAT[cat] });
+                analytics.push({ nombre: r[0], costo: Math.round(costoTotal), venta: Number(venta), utilidad: venta - costoTotal, color: COLORES_CAT[cat] });
             });
             cont.insertAdjacentHTML('beforeend', catHtml + `</div>`);
         });
@@ -414,6 +387,8 @@
         document.getElementById('listaIngredientes').innerHTML = '';
         JSON.parse(r[1]).forEach(ing => nuevaFila(ing.nombreInsumo, ing.cantidad, ing.tipo));
         cambiarTab('recetas');
+        toggleUnidadAditivo();
+        if(r[5]) document.getElementById('unidadResultadoAditivo').value = r[5];
         calcularSugerido();
         window.scrollTo(0,0);
     }
@@ -430,16 +405,14 @@
 
     async function eliminarItem(tipo, index) {
         if(!confirm("¿Deseas eliminar este registro?")) return;
-        const sheet = (tipo === 'insumo') ? "Insumos" : "Recetas";
         document.getElementById('loading').style.display = 'block';
-        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: sheet, row: index }) });
+        await fetch(URL_GOOGLE, { method: 'POST', mode: 'no-cors', body: JSON.stringify({ action: "delete", sheet: (tipo === 'insumo') ? "Insumos" : "Recetas", row: index }) });
         setTimeout(() => location.reload(), 1500);
     }
 
     function filtrarInsumos() {
         const val = document.getElementById('searchInsumo').value.toLowerCase();
-        const filas = document.querySelectorAll('#tablaInsumos tr');
-        filas.forEach(f => f.style.display = f.innerText.toLowerCase().includes(val) ? '' : 'none');
+        document.querySelectorAll('#tablaInsumos tr').forEach(f => f.style.display = f.innerText.toLowerCase().includes(val) ? '' : 'none');
     }
 </script>
 </body>
