@@ -109,9 +109,9 @@
                 </select>
 
                 <div id="opcionUnidadAditivo">
-                    <small><strong>¿Cómo se mide este Aditivo al final?</strong></small>
+                    <small><strong>¿Cómo se mide este Aditivo al usarlo?</strong></small>
                     <select id="unidadResultadoAditivo">
-                        <option value="un">Por Unidad (ej: 1 hamburguesa)</option>
+                        <option value="un">Por Unidad (ej: 1 hamburguesa artesanal)</option>
                         <option value="gr">Por Peso/Volumen (ej: 1 gr/ml de salsa)</option>
                     </select>
                 </div>
@@ -162,7 +162,7 @@
     let inactividadTimer;
 
     const COLORES_CAT = {
-        "Aditivo": "#dcdde1", "Entrada": "#ffadad", "Hamburguesa/Sandwich": "#ffd6a5", 
+        "Aditivo": "#9b59b6", "Entrada": "#ffadad", "Hamburguesa/Sandwich": "#ffd6a5", 
         "Plato de Fondo": "#fdffb6", "Ensalada": "#caffbf", "Postre": "#9bf6ff", 
         "Bebestible con Alcohol": "#a0c4ff", "Bebestible sin Alcohol": "#bdb2ff"
     };
@@ -352,6 +352,7 @@
                             </div>
                         </div>
                     </div>`;
+                // Se agregan todos los platos incluyendo aditivos a la lista de gráficos
                 analytics.push({ nombre: r[0], costo: Math.round(costoTotal), venta: Number(venta), utilidad: venta - costoTotal, color: COLORES_CAT[cat] });
             });
             cont.insertAdjacentHTML('beforeend', catHtml + `</div>`);
